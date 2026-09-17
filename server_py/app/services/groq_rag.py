@@ -10,11 +10,12 @@ from app.services.chunker import format_seconds
 
 logger = logging.getLogger("groq_rag")
 
-SYSTEM_PROMPT = """You are an expert AI study assistant for the indexed YouTube course playlist.
+def get_system_prompt(playlist_title: str) -> str:
+    return f"""You are an expert, dedicated AI study tutor for the YouTube course: "{playlist_title}".
 
 CRITICAL INSTRUCTIONS:
-1. RELEVANCE CHECK: If the provided transcript excerpts do NOT actually discuss or contain the topic the user asked about, or if the user question is unrelated to the playlist, you MUST state honestly:
-"This topic is not covered in this playlist. Please ask a question related to the topics covered in this course (such as RAG, LangGraph, Agents, Tokens, Embeddings, Qdrant, or Prompt Engineering)."
+1. RELEVANCE CHECK: If the provided transcript excerpts do NOT actually discuss or contain the topic the user asked about, or if the user question is unrelated to "{playlist_title}", you MUST state honestly:
+"This topic is not covered in '{playlist_title}'. Please ask a question related to the topics covered in this course syllabus."
 And under ===ENGLISH_SOURCES=== write NONE. Do NOT cite any irrelevant videos.
 
 2. LANGUAGE: You MUST ALWAYS answer entirely in clear, natural ENGLISH. Even if the video transcripts are in Hindi, Hinglish, or Devanagari script, NEVER write in Hindi or Devanagari script. All explanations, bullet points, and source summaries MUST BE IN ENGLISH.
@@ -28,6 +29,7 @@ And under ===ENGLISH_SOURCES=== write NONE. Do NOT cite any irrelevant videos.
 ===ENGLISH_SOURCES===
 [1] <1-2 sentence English explanation of excerpt 1>
 [2] <1-2 sentence English explanation of excerpt 2>"""
+
 
 STOP_WORDS = {
     'i', 'im', 'am', 'are', 'is', 'was', 'were', 'be', 'been', 'being',
@@ -144,6 +146,16 @@ def search_rag(query: str, playlist_id: str, top_k: int = 5) -> Dict[str, Any]:
 
     scored_candidates.sort(key=lambda c: c["final_score"], reverse=True)
 
+    # Resolve playlist title
+    playlist_title = "this course"
+    if candidates:
+        playlist_title = candidates[0].get("metadata", {}).get("playlist_title") or playlist_title
+    if playlist_title == "this course":
+        for pl in vector_store.get_playlists():
+            if pl.get("playlist_id") == playlist_id:
+                playlist_title = pl.get("playlist_title", "this course")
+                break
+
     # STRICT RELEVANCE GATE:
     # If the query is unrelated/conversational and NO candidate matches title/keywords nor has high vector score:
     # Return NOTHING!
@@ -153,9 +165,9 @@ def search_rag(query: str, playlist_id: str, top_k: int = 5) -> Dict[str, Any]:
     has_strong_vector_match = top_cand and (top_cand["raw_score"] >= 0.35)
 
     if not has_keyword_boost and not has_title_match and not has_strong_vector_match:
-        logger.info(f"🛑 No relevant topic found for '{trimmed_query}'. (raw: {top_cand['raw_score']:.3f}, matching titles: 0)")
+        logger.info(f"🛑 No relevant topic found for '{trimmed_query}' in '{playlist_title}'. (raw: {top_cand['raw_score']:.3f}, matching titles: 0)")
         return {
-            "answer": "This topic is not covered in this playlist. Please ask a question related to the topics covered in this course (such as RAG, LangGraph, AI Agents, Tokens, Embeddings, Qdrant, or Prompt Engineering).",
+            "answer": f"This topic is not covered in '{playlist_title}'. Please ask a question related to the topics covered in this course syllabus.",
             "sources": []
         }
 
@@ -181,7 +193,7 @@ def search_rag(query: str, playlist_id: str, top_k: int = 5) -> Dict[str, Any]:
 
     video_catalog = "\n".join(f"- {v.get('title')}" for v in playlist_videos[:15])
 
-    user_message = f"""This playlist covers:
+    user_message = f"""This playlist ({playlist_title}) covers:
 {video_catalog}
 
 Here are transcript excerpts from the YouTube playlist:
@@ -199,12 +211,13 @@ Remember:
     completion = groq_client.chat.completions.create(
         model=settings.GROQ_MODEL,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": get_system_prompt(playlist_title)},
             {"role": "user", "content": user_message}
         ],
         temperature=0.2,
         max_tokens=750
     )
+
 
     full_text = completion.choices[0].message.content or "No response generated."
 
@@ -358,13 +371,23 @@ def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator
 
     scored_candidates.sort(key=lambda c: c["final_score"], reverse=True)
 
+    # Resolve playlist title
+    playlist_title = "this course"
+    if candidates:
+        playlist_title = candidates[0].get("metadata", {}).get("playlist_title") or playlist_title
+    if playlist_title == "this course":
+        for pl in vector_store.get_playlists():
+            if pl.get("playlist_id") == playlist_id:
+                playlist_title = pl.get("playlist_title", "this course")
+                break
+
     top_cand = scored_candidates[0] if scored_candidates else None
     has_keyword_boost = top_cand and (top_cand["final_score"] - top_cand["raw_score"] >= 0.15)
     has_title_match = len(matching_title_videos) > 0
     has_strong_vector_match = top_cand and (top_cand["raw_score"] >= 0.35)
 
     if not has_keyword_boost and not has_title_match and not has_strong_vector_match:
-        yield f"data: {json.dumps({'type': 'token', 'text': 'This topic is not covered in this playlist. Please ask a question related to the topics covered in this course.'})}\n\n"
+        yield f"data: {json.dumps({'type': 'token', 'text': f'This topic is not covered in \"{playlist_title}\". Please ask a question related to this course syllabus.'})}\n\n"
         yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
         return
@@ -404,7 +427,7 @@ def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator
 
     video_catalog = "\n".join(f"- {v.get('title')}" for v in playlist_videos[:15])
 
-    user_message = f"""This playlist covers:
+    user_message = f"""This playlist ({playlist_title}) covers:
 {video_catalog}
 
 Here are transcript excerpts from the YouTube playlist:
@@ -415,11 +438,13 @@ Question: {trimmed_query}
 
 Provide a comprehensive, clearly explained educational response in English Markdown. Cite relevant video titles and timestamps."""
 
-    STREAM_SYSTEM_PROMPT = """You are an expert AI study assistant for the indexed YouTube course playlist.
+    stream_system_prompt = f"""You are an expert, dedicated AI study tutor for the YouTube course: "{playlist_title}".
 CRITICAL INSTRUCTIONS:
-1. LANGUAGE: ALWAYS answer entirely in clear, natural ENGLISH. Even if the video transcripts are in Hindi, Hinglish, or Devanagari script, NEVER write in Hindi or Devanagari script. All explanations, bullet points, and summaries MUST BE IN ENGLISH.
-2. CITATIONS: Cite the exact video title and timestamp: [Video Title @ timestamp].
-3. FORMATTING: Use clean Markdown with headers, bullet points, bold keywords, and concise explanations."""
+1. FOCUS: Answer questions strictly based on the syllabus and transcript excerpts of "{playlist_title}".
+2. RELEVANCE: If the question is not covered in this course, state clearly: "This topic is not covered in '{playlist_title}'. Please ask a question related to this course syllabus."
+3. LANGUAGE: ALWAYS answer entirely in clear, natural ENGLISH. Even if the video transcripts are in Hindi, Hinglish, or Devanagari script, NEVER write in Hindi or Devanagari script. All explanations, bullet points, and summaries MUST BE IN ENGLISH.
+4. CITATIONS: Cite the exact video title and timestamp: [Video Title @ timestamp].
+5. FORMATTING: Use clean Markdown with headers, bullet points, bold keywords, and concise explanations."""
 
     # 6. Stream Groq tokens
     try:
@@ -427,9 +452,10 @@ CRITICAL INSTRUCTIONS:
         stream = groq_client.chat.completions.create(
             model=settings.GROQ_MODEL,
             messages=[
-                {"role": "system", "content": STREAM_SYSTEM_PROMPT},
+                {"role": "system", "content": stream_system_prompt},
                 {"role": "user", "content": user_message}
             ],
+
             temperature=0.2,
             max_tokens=750,
             stream=True

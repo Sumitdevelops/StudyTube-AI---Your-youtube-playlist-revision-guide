@@ -4,7 +4,7 @@
  * AnswerView - Displays the AI-generated answer in a puffy claymorphism card.
  * Renders markdown-like formatting from the Groq response.
  */
-export default function AnswerView({ answer, isLoading }) {
+export default function AnswerView({ answer, isLoading, playlistTitle = '' }) {
   if (isLoading && !answer) {
     return (
       <div
@@ -29,7 +29,7 @@ export default function AnswerView({ answer, isLoading }) {
             🧠
           </div>
           <span style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            AI is thinking...
+            {playlistTitle ? `${playlistTitle} AI is thinking...` : 'AI is thinking...'}
           </span>
         </div>
 
@@ -94,7 +94,7 @@ export default function AnswerView({ answer, isLoading }) {
           🧠
         </div>
         <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem' }}>
-          AI Answer
+          {playlistTitle ? `${playlistTitle} AI Tutor` : 'AI Answer'}
         </span>
         <div className="clay-badge" style={{ marginLeft: 'auto' }}>
           {isLoading ? (
@@ -103,10 +103,11 @@ export default function AnswerView({ answer, isLoading }) {
               Streaming live...
             </span>
           ) : (
-            'Powered by Groq'
+            `Trained on ${playlistTitle || 'this playlist'}`
           )}
         </div>
       </div>
+
 
       {/* Answer Content */}
       <div

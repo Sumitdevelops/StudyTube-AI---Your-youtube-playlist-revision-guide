@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-export default function SearchBar({ onSearch, isLoading, disabled }) {
+export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle = '', videos = [] }) {
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
 
@@ -16,12 +16,55 @@ export default function SearchBar({ onSearch, isLoading, disabled }) {
     }
   };
 
-  const suggestions = [
-    'What is RAG and how does it work?',
-    'Explain LangGraph agents and nodes',
-    'How do tokens and embeddings work?',
-    'Qdrant vector database implementation',
-  ];
+  // Dynamic, playlist-specific suggestions
+  const getSuggestions = () => {
+    const titleLower = (playlistTitle || '').toLowerCase();
+
+    if (titleLower.includes('toc') || titleLower.includes('computation') || titleLower.includes('theory')) {
+      return [
+        'What is DFA and how to construct it?',
+        'Difference between NFA and DFA',
+        'Explain Regular Expressions in TOC',
+        'What is a Turing Machine?',
+      ];
+    }
+
+    if (titleLower.includes('ai engineer') || titleLower.includes('langgraph') || titleLower.includes('rag')) {
+      return [
+        'What is RAG and how does it work?',
+        'Explain LangGraph agents and nodes',
+        'How do tokens and embeddings work?',
+        'Prompt engineering techniques',
+      ];
+    }
+
+    // Dynamic suggestions derived from the active playlist's video titles
+    if (videos && videos.length > 0) {
+      const generated = [];
+      for (const v of videos.slice(0, 10)) {
+        if (!v.title) continue;
+        const clean = v.title
+          .replace(/^(lecture|episode|lec|ep)[\s\d:.-]+/i, '')
+          .replace(/\|.*$/g, '')
+          .replace(/-.*$/g, '')
+          .trim();
+
+        if (clean.length > 5 && clean.length < 40 && !generated.some(g => g.includes(clean))) {
+          generated.push(`Explain ${clean}`);
+        }
+        if (generated.length >= 4) break;
+      }
+      if (generated.length > 0) return generated;
+    }
+
+    return [
+      'Summarize key topics in this playlist',
+      'What are the core concepts covered?',
+      'Explain the first video',
+    ];
+  };
+
+  const suggestions = getSuggestions();
 
   return (
     <div
@@ -34,7 +77,13 @@ export default function SearchBar({ onSearch, isLoading, disabled }) {
             ref={inputRef}
             className="clay-input"
             type="text"
-            placeholder={disabled ? 'Index a playlist first...' : 'Ask anything about topics in this playlist...'}
+            placeholder={
+              disabled
+                ? 'Index a playlist first...'
+                : playlistTitle
+                ? `Ask ${playlistTitle} AI Tutor anything...`
+                : 'Ask anything about topics in this playlist...'
+            }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={isLoading || disabled}
@@ -43,6 +92,7 @@ export default function SearchBar({ onSearch, isLoading, disabled }) {
               fontSize: '1.05rem',
             }}
           />
+
           <span
             style={{
               position: 'absolute',

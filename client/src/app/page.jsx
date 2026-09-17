@@ -258,10 +258,17 @@ export default function Home() {
             onSearch={handleSearch}
             isLoading={isSearching}
             disabled={!activePlaylistId}
+            playlistTitle={activePlaylistTitle}
+            videos={videos}
           />
 
           {/* AI Answer */}
-          <AnswerView answer={answer} isLoading={isSearching} />
+          <AnswerView
+            answer={answer}
+            isLoading={isSearching}
+            playlistTitle={activePlaylistTitle}
+          />
+
 
           {/* Source Cards */}
           <SourceCards

@@ -8,6 +8,7 @@ export default function AnswerView({
   answer,
   isLoading,
   playlistTitle = '',
+  channelTitle = '',
   onRequestPlaylist,
   userQuery = '',
 }) {
@@ -35,7 +36,7 @@ export default function AnswerView({
             🧠
           </div>
           <span style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            {playlistTitle ? `${playlistTitle} AI is thinking...` : 'AI is thinking...'}
+            {playlistTitle ? `${playlistTitle}${channelTitle ? ` (${channelTitle})` : ''} AI is thinking...` : 'AI is thinking...'}
           </span>
         </div>
 
@@ -91,7 +92,7 @@ export default function AnswerView({
           🧠
         </div>
         <span className="ai-title">
-          {playlistTitle ? `${playlistTitle} AI Tutor` : 'AI Answer'}
+          {playlistTitle ? `${playlistTitle}${channelTitle ? ` (${channelTitle})` : ''} AI Tutor` : 'AI Answer'}
         </span>
         <div className="clay-badge answer-badge">
           {isLoading ? (
@@ -100,7 +101,9 @@ export default function AnswerView({
               Streaming live...
             </span>
           ) : (
-            `Trained on ${playlistTitle || 'this playlist'}`
+            channelTitle
+              ? `Trained on ${playlistTitle} • ${channelTitle}`
+              : `Trained on ${playlistTitle || 'this playlist'}`
           )}
         </div>
       </div>

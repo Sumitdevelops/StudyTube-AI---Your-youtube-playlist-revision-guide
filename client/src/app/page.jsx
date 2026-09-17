@@ -272,6 +272,9 @@ export default function Home() {
     }, 50);
   }, []);
 
+  const activePlaylist = playlists.find(p => p.playlist_id === activePlaylistId);
+  const activeChannelTitle = activePlaylist?.channel_title || '';
+
   return (
     <div className="app-container">
       <Header
@@ -388,6 +391,7 @@ export default function Home() {
             isLoading={isSearching}
             disabled={!activePlaylistId}
             playlistTitle={activePlaylistTitle}
+            channelTitle={activeChannelTitle}
             videos={videos}
           />
 
@@ -396,6 +400,7 @@ export default function Home() {
             answer={answer}
             isLoading={isSearching}
             playlistTitle={activePlaylistTitle}
+            channelTitle={activeChannelTitle}
             onRequestPlaylist={handleOpenRequestModal}
             userQuery={lastQuery}
           />

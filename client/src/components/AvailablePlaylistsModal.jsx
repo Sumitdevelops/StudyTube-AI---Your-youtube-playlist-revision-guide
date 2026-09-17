@@ -12,12 +12,13 @@ export default function AvailablePlaylistsModal({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter playlists based on search query
+  // Filter playlists based on search query (matches course title OR channel name)
   const filteredPlaylists = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return playlists;
     return playlists.filter((p) =>
-      (p.playlist_title || '').toLowerCase().includes(q)
+      (p.playlist_title || '').toLowerCase().includes(q) ||
+      (p.channel_title || '').toLowerCase().includes(q)
     );
   }, [playlists, searchQuery]);
 
@@ -62,7 +63,7 @@ export default function AvailablePlaylistsModal({
               Available Courses &amp; Playlists
             </h2>
             <p className="modal-subtitle">
-              Explore indexed courses, search by topic, or request a new course!
+              Explore indexed courses, search by topic or channel, or request a new course!
             </p>
           </div>
         </div>
@@ -72,7 +73,7 @@ export default function AvailablePlaylistsModal({
           <input
             className="clay-input"
             type="text"
-            placeholder="Search courses (e.g. TOC, AI, Python)..."
+            placeholder="Search courses or channel (e.g. TOC, Gate Smashers, AI)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -163,7 +164,7 @@ export default function AvailablePlaylistsModal({
 
                     {/* Course Details */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
                         <h3 className="course-title">
                           {shortTitle}
                         </h3>
@@ -173,6 +174,15 @@ export default function AvailablePlaylistsModal({
                           </span>
                         )}
                       </div>
+
+                      {/* YouTube Channel Name */}
+                      {playlist.channel_title && (
+                        <div style={{ marginBottom: '4px' }}>
+                          <span className="course-channel-badge">
+                            📺 {playlist.channel_title}
+                          </span>
+                        </div>
+                      )}
 
                       <p
                         className="course-full-title"
@@ -399,6 +409,19 @@ export default function AvailablePlaylistsModal({
           background: var(--accent-primary);
           color: #fff;
           letter-spacing: 0.4px;
+        }
+
+        .course-channel-badge {
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: #dc2626;
+          background: rgba(220, 38, 38, 0.08);
+          border: 1px solid rgba(220, 38, 38, 0.2);
+          padding: 2px 8px;
+          border-radius: var(--radius-sm);
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
         }
 
         .course-full-title {

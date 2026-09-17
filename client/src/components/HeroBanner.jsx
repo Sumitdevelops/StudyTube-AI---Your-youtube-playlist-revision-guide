@@ -132,7 +132,7 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
             }
             className="clay-button hero-pill-btn"
           >
-            📐 &ldquo;What is DFA?&rdquo; (TOC)
+            📐 &ldquo;What is DFA?&rdquo; <span style={{ opacity: 0.75, fontSize: '0.74rem', marginLeft: '4px' }}>• Gate Smashers</span>
           </button>
 
           <button
@@ -146,7 +146,7 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
             }
             className="clay-button hero-pill-btn"
           >
-            🧠 &ldquo;What is RAG?&rdquo; (AI Course)
+            🧠 &ldquo;What is RAG?&rdquo; <span style={{ opacity: 0.75, fontSize: '0.74rem', marginLeft: '4px' }}>• Padho with Pratyush</span>
           </button>
         </div>
 

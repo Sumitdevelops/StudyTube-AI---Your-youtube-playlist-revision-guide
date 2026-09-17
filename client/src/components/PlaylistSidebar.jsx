@@ -49,6 +49,8 @@ export default function PlaylistSidebar({
     );
   }
 
+  const activePlaylist = playlists?.find(p => p.playlist_id === activePlaylistId);
+
   return (
     <div className="sidebar-wrapper clay-card-flat">
       {/* Playlist Selector Dropdown (when multiple playlists exist) */}
@@ -64,7 +66,7 @@ export default function PlaylistSidebar({
           >
             {playlists.map((pl) => (
               <option key={pl.playlist_id} value={pl.playlist_id}>
-                {pl.playlist_title}
+                {pl.playlist_title} {pl.channel_title ? `• ${pl.channel_title}` : ''}
               </option>
             ))}
           </select>
@@ -77,6 +79,11 @@ export default function PlaylistSidebar({
           <h2 className="sidebar-title">
             🎬 {playlistTitle || 'Playlist'}
           </h2>
+          {activePlaylist?.channel_title && (
+            <div className="sidebar-channel-badge">
+              📺 {activePlaylist.channel_title}
+            </div>
+          )}
           <p className="sidebar-subtitle">
             {videos.length} lecture{videos.length !== 1 ? 's' : ''} indexed
           </p>
@@ -186,6 +193,20 @@ export default function PlaylistSidebar({
           display: flex;
           align-items: center;
           gap: 8px;
+        }
+
+        .sidebar-channel-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: #dc2626;
+          background: rgba(220, 38, 38, 0.08);
+          border: 1px solid rgba(220, 38, 38, 0.2);
+          padding: 2px 7px;
+          border-radius: var(--radius-sm);
+          margin-top: 4px;
         }
 
         .sidebar-subtitle {

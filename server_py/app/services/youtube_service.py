@@ -43,7 +43,7 @@ def fetch_playlist_videos(playlist_id: str) -> Dict[str, Any]:
     if not key:
         raise ValueError("YOUTUBE_API_KEY is not configured in .env")
 
-    # 1. Fetch playlist title
+    # 1. Fetch playlist title and channel
     pl_res = requests.get(f"{base_url}/playlists", params={
         "part": "snippet",
         "id": playlist_id,
@@ -52,6 +52,7 @@ def fetch_playlist_videos(playlist_id: str) -> Dict[str, Any]:
     pl_data = pl_res.json()
     items = pl_data.get("items", [])
     playlist_title = items[0]["snippet"]["title"] if items else "Unknown Playlist"
+    channel_title = items[0]["snippet"].get("channelTitle", "") if items else ""
 
     # 2. Paginate through playlistItems
     videos: List[Dict[str, Any]] = []
@@ -115,6 +116,7 @@ def fetch_playlist_videos(playlist_id: str) -> Dict[str, Any]:
     return {
         "playlist_id": playlist_id,
         "title": playlist_title,
+        "channel_title": channel_title,
         "thumbnail_url": videos[0]["thumbnail_url"] if videos else "",
         "videos": videos
     }

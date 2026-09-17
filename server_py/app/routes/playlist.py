@@ -64,7 +64,8 @@ def transcribe_playlist_endpoint(req: TranscribeRequest):
                 "thumbnail_url": video["thumbnail_url"],
                 "duration": video.get("duration", 0),
                 "playlist_id": playlist["playlist_id"],
-                "playlist_title": playlist["title"]
+                "playlist_title": playlist["title"],
+                "channel_title": playlist.get("channel_title", "")
             })
 
             if not chunks:
@@ -151,12 +152,14 @@ def get_playlist_endpoint(playlist_id: str):
         playlists = vector_store.get_playlists()
         pl_info = next((p for p in playlists if p.get("playlist_id") == playlist_id), None)
         title = pl_info.get("playlist_title", "Unknown Playlist") if pl_info else "Unknown Playlist"
+        channel_title = pl_info.get("channel_title", "") if pl_info else ""
 
         return {
             "playlist_id": playlist_id,
             "title": title,
+            "channel_title": channel_title,
             "video_count": len(videos),
-            "chunk_count": 0,
+            "chunk_count": pl_info.get("chunk_count", 0) if pl_info else 0,
             "videos": videos
         }
     except HTTPException:

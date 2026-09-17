@@ -133,7 +133,7 @@ class QdrantAdapter:
                 collection_name=self.collection_name,
                 limit=1000,
                 offset=offset,
-                with_payload=["playlist_id", "playlist_title", "thumbnail_url", "video_id"]
+                with_payload=["playlist_id", "playlist_title", "thumbnail_url", "video_id", "channel_title", "channel_name"]
             )
             points, next_offset = scroll_res
 
@@ -142,13 +142,24 @@ class QdrantAdapter:
                 pid = payload.get("playlist_id")
                 if pid:
                     if pid not in playlist_map:
+                        channel = (
+                            payload.get("channel_title")
+                            or payload.get("channel_name")
+                            or ("Gate Smashers" if "PLxCzCOWd7ai" in pid else "Padho with Pratyush" if "PLW4OpyGE0RdY" in pid else "")
+                        )
                         playlist_map[pid] = {
                             "playlist_id": pid,
                             "playlist_title": payload.get("playlist_title", ""),
+                            "channel_title": channel,
                             "thumbnail_url": payload.get("thumbnail_url", ""),
                             "video_ids": set(),
                             "chunk_count": 0,
                         }
+                    else:
+                        if not playlist_map[pid].get("channel_title"):
+                            c = payload.get("channel_title") or payload.get("channel_name")
+                            if c:
+                                playlist_map[pid]["channel_title"] = c
                     playlist_map[pid]["chunk_count"] += 1
                     vid = payload.get("video_id")
                     if vid:

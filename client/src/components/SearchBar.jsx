@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle = '', videos = [] }) {
+export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle = '', channelTitle = '', videos = [] }) {
   const [query, setQuery] = useState('');
   const inputRef = useRef(null);
 
@@ -78,7 +78,7 @@ export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle
               disabled
                 ? 'Index a playlist first...'
                 : playlistTitle
-                  ? `Ask ${playlistTitle} AI Tutor anything...`
+                  ? `Ask ${playlistTitle}${channelTitle ? ` (${channelTitle})` : ''} AI Tutor anything...`
                   : 'Ask anything about topics in this playlist...'
             }
             value={query}

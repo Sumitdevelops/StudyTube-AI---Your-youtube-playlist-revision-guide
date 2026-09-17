@@ -168,6 +168,9 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
           box-shadow: var(--clay-shadow);
           position: relative;
           border: 1.5px solid rgba(255, 255, 255, 0.6);
+          overflow: hidden;
+          max-width: 100%;
+          box-sizing: border-box;
         }
 
         .hero-dismiss-btn {
@@ -257,14 +260,14 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
-          padding-top: 8px;
+          padding-top: 10px;
           border-top: 1px solid rgba(166, 152, 138, 0.2);
         }
 
         .hero-demo-label {
-          font-size: 0.8rem;
+          font-size: 0.82rem;
           font-weight: 800;
-          color: var(--text-secondary);
+          color: var(--text-primary);
           white-space: nowrap;
         }
 
@@ -272,38 +275,43 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
+          flex: 1;
         }
 
         .hero-pill-btn {
           font-size: 0.78rem;
-          padding: 6px 14px;
+          padding: 7px 14px;
           font-weight: 800;
           color: var(--text-primary);
           background: #ffffff;
           box-shadow: var(--clay-shadow-sm);
           white-space: nowrap;
+          cursor: pointer;
         }
 
         .hero-request-badge {
           margin-left: auto;
           cursor: pointer;
           border: none;
-          font-size: 0.8rem;
-          padding: 6px 14px;
-          color: var(--accent-primary);
-          font-weight: 800;
-          background: var(--accent-primary-surface);
+          font-size: 0.82rem;
+          padding: 8px 16px;
+          color: #ffffff;
+          font-weight: 900;
+          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+          border-radius: var(--radius-full);
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
           white-space: nowrap;
+          transition: all 0.2s ease;
         }
 
         @media (max-width: 768px) {
           .hero-banner {
-            padding: 16px 18px;
+            padding: 16px 14px;
             border-radius: var(--radius-lg);
           }
 
           .hero-headline {
-            font-size: 1.22rem;
+            font-size: 1.2rem;
           }
 
           .hero-desc {
@@ -312,19 +320,28 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
 
           .hero-steps-grid {
             grid-template-columns: 1fr;
+            gap: 10px;
           }
 
           .hero-demo-row {
             flex-direction: column;
             align-items: stretch;
-            gap: 8px;
+            gap: 10px;
           }
 
           .hero-pills-container {
-            overflow-x: auto;
-            flex-wrap: nowrap;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 4px;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 8px;
+          }
+
+          .hero-pill-btn {
+            width: 100%;
+            text-align: left;
+            padding: 9px 14px;
+            font-size: 0.82rem;
+            white-space: normal;
           }
 
           .hero-request-badge {
@@ -332,7 +349,9 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
             width: 100%;
             text-align: center;
             justify-content: center;
-            padding: 8px 12px;
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            display: flex;
           }
         }
       `}</style>

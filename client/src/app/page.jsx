@@ -9,6 +9,7 @@ import SearchBar from '@/components/SearchBar';
 import AnswerView from '@/components/AnswerView';
 import SourceCards from '@/components/SourceCards';
 import RequestPlaylistModal from '@/components/RequestPlaylistModal';
+import HeroBanner from '@/components/HeroBanner';
 import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylist, searchPlaylistStream } from '@/lib/api';
 
 export default function Home() {
@@ -191,6 +192,50 @@ export default function Home() {
     }
   };
 
+  // 1-Click Interactive Demo handler from Hero Banner
+  const handleTryDemo = async (query, playlistId, playlistTitle) => {
+    setActivePlaylistId(playlistId);
+    setActivePlaylistTitle(playlistTitle);
+    await loadPlaylistVideos(playlistId);
+    setAnswer('');
+    setSources([]);
+    setIsSearching(true);
+    setLastQuery(query);
+    setActiveSourceIdx(-1);
+
+    try {
+      await searchPlaylistStream(
+        query,
+        playlistId,
+        5,
+        (token) => {
+          setAnswer((prev) => prev + token);
+        },
+        (newSources) => {
+          setSources(newSources || []);
+          if (newSources && newSources.length > 0) {
+            const first = newSources[0];
+            setSelectedVideoId(first.video_id);
+            setPlayTime(first.timestamp);
+            setActiveSourceIdx(0);
+            setPlayTrigger((prev) => prev + 1);
+          }
+        }
+      );
+    } catch (err) {
+      setAnswer(`Error: ${err.message}`);
+    } finally {
+      setIsSearching(false);
+    }
+
+    setTimeout(() => {
+      const el = document.getElementById('player-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150);
+  };
+
   const [playTrigger, setPlayTrigger] = useState(0);
 
   // Click a source card
@@ -231,6 +276,12 @@ export default function Home() {
         vectorCount={vectorCount}
         isConnected={isConnected}
         onRequestPlaylist={() => handleOpenRequestModal('')}
+      />
+
+      {/* Hero / Value Proposition Banner */}
+      <HeroBanner
+        onTryDemo={handleTryDemo}
+        onRequestClick={() => handleOpenRequestModal('')}
       />
 
       {/* Admin-Only Playlist Ingestion Panel */}

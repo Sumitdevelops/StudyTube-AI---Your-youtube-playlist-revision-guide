@@ -1,3 +1,10 @@
+import os
+# Prevent multi-threading memory overhead on low-RAM containers
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

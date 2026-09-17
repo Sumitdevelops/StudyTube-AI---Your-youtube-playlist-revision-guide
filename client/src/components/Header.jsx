@@ -1,6 +1,12 @@
 'use client';
 
-export default function Header({ vectorCount, isConnected, onRequestPlaylist }) {
+export default function Header({
+  vectorCount,
+  isConnected,
+  onRequestPlaylist,
+  onOpenAvailablePlaylists,
+  playlistCount = 0,
+}) {
   return (
     <header
       style={{
@@ -57,7 +63,46 @@ export default function Header({ vectorCount, isConnected, onRequestPlaylist }) 
       </div>
 
       {/* Actions & Status Indicators */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        {/* Available Playlists Button */}
+        <button
+          onClick={onOpenAvailablePlaylists}
+          className="clay-button"
+          style={{
+            fontSize: '0.86rem',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: 800,
+            background: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            boxShadow: 'var(--clay-shadow-sm)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            border: '1.5px solid rgba(255, 255, 255, 0.6)',
+          }}
+          title="View all available playlists and search courses"
+        >
+          <span style={{ fontSize: '1.05rem' }}>📚</span>
+          <span>Available Playlists</span>
+          {playlistCount > 0 && (
+            <span
+              style={{
+                backgroundColor: 'var(--accent-primary)',
+                color: '#fff',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                fontSize: '0.72rem',
+                fontWeight: 900,
+              }}
+            >
+              {playlistCount}
+            </span>
+          )}
+        </button>
+
+        {/* Request Playlist Button */}
         <button
           onClick={onRequestPlaylist}
           className="clay-button"

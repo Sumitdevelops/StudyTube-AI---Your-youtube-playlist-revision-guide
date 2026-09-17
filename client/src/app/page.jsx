@@ -9,6 +9,7 @@ import SearchBar from '@/components/SearchBar';
 import AnswerView from '@/components/AnswerView';
 import SourceCards from '@/components/SourceCards';
 import RequestPlaylistModal from '@/components/RequestPlaylistModal';
+import AvailablePlaylistsModal from '@/components/AvailablePlaylistsModal';
 import HeroBanner from '@/components/HeroBanner';
 import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylist, searchPlaylistStream } from '@/lib/api';
 
@@ -35,6 +36,7 @@ export default function Home() {
   const [activeSourceIdx, setActiveSourceIdx] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [isAvailableModalOpen, setIsAvailableModalOpen] = useState(false);
   const [requestModalSubject, setRequestModalSubject] = useState('');
   const [lastQuery, setLastQuery] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -276,6 +278,8 @@ export default function Home() {
         vectorCount={vectorCount}
         isConnected={isConnected}
         onRequestPlaylist={() => handleOpenRequestModal('')}
+        onOpenAvailablePlaylists={() => setIsAvailableModalOpen(true)}
+        playlistCount={playlists.length}
       />
 
       {/* Hero / Value Proposition Banner */}
@@ -441,6 +445,16 @@ export default function Home() {
         </button>
       </footer>
 
+
+      {/* Available Playlists Modal */}
+      <AvailablePlaylistsModal
+        isOpen={isAvailableModalOpen}
+        onClose={() => setIsAvailableModalOpen(false)}
+        playlists={playlists}
+        activePlaylistId={activePlaylistId}
+        onSelectPlaylist={handleSelectPlaylist}
+        onRequestPlaylist={handleOpenRequestModal}
+      />
 
       {/* Request Playlist Modal */}
       <RequestPlaylistModal

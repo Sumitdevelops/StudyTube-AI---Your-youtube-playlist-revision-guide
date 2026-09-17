@@ -124,7 +124,7 @@ class QdrantAdapter:
         return results
 
     def get_playlists(self) -> List[Dict[str, Any]]:
-        """Extract all unique playlists from the collection."""
+        """Extract all unique playlists from the collection with accurate counts."""
         playlist_map = {}
         offset = None
 
@@ -133,27 +133,39 @@ class QdrantAdapter:
                 collection_name=self.collection_name,
                 limit=1000,
                 offset=offset,
-                with_payload=["playlist_id", "playlist_title", "thumbnail_url"]
+                with_payload=["playlist_id", "playlist_title", "thumbnail_url", "video_id"]
             )
             points, next_offset = scroll_res
 
             for p in points:
                 payload = p.payload or {}
                 pid = payload.get("playlist_id")
-                if pid and pid not in playlist_map:
-                    playlist_map[pid] = {
-                        "playlist_id": pid,
-                        "playlist_title": payload.get("playlist_title", ""),
-                        "thumbnail_url": payload.get("thumbnail_url", ""),
-                        "video_count": 0,
-                        "chunk_count": 0,
-                    }
+                if pid:
+                    if pid not in playlist_map:
+                        playlist_map[pid] = {
+                            "playlist_id": pid,
+                            "playlist_title": payload.get("playlist_title", ""),
+                            "thumbnail_url": payload.get("thumbnail_url", ""),
+                            "video_ids": set(),
+                            "chunk_count": 0,
+                        }
+                    playlist_map[pid]["chunk_count"] += 1
+                    vid = payload.get("video_id")
+                    if vid:
+                        playlist_map[pid]["video_ids"].add(vid)
 
             offset = next_offset
             if offset is None:
                 break
 
-        return list(playlist_map.values())
+        results = []
+        for item in playlist_map.values():
+            v_ids = item.pop("video_ids", set())
+            item["video_count"] = len(v_ids)
+            results.append(item)
+
+        return results
+
 
     def get_playlist_videos(self, playlist_id: str) -> List[Dict[str, Any]]:
         """Get all unique videos in a playlist."""

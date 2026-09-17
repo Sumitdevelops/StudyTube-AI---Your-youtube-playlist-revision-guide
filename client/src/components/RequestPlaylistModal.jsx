@@ -70,50 +70,16 @@ export default function RequestPlaylistModal({ isOpen, onClose, initialSubject =
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(30, 20, 40, 0.45)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-      }}
+      className="modal-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleResetAndClose();
       }}
     >
-      <div
-        className="clay-card animate-pop-in"
-        style={{
-          width: '100%',
-          maxWidth: '520px',
-          padding: '32px',
-          background: 'var(--bg-card)',
-          borderRadius: 'var(--radius-xl)',
-          boxShadow: 'var(--clay-shadow-lg)',
-          position: 'relative',
-        }}
-      >
+      <div className="modal-dialog clay-card animate-pop-in">
         {/* Close Button */}
         <button
           onClick={handleResetAndClose}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'none',
-            border: 'none',
-            fontSize: '1.4rem',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            lineHeight: 1,
-          }}
+          className="modal-close-btn"
           aria-label="Close modal"
         >
           ✕
@@ -182,6 +148,7 @@ export default function RequestPlaylistModal({ isOpen, onClose, initialSubject =
                   justifyContent: 'center',
                   fontSize: '20px',
                   boxShadow: 'var(--clay-shadow-sm)',
+                  flexShrink: 0,
                 }}
               >
                 ✨
@@ -202,7 +169,7 @@ export default function RequestPlaylistModal({ isOpen, onClose, initialSubject =
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <form onSubmit={handleSubmit} style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   Course / Subject Name <span style={{ color: '#e74c3c' }}>*</span>
@@ -233,7 +200,7 @@ export default function RequestPlaylistModal({ isOpen, onClose, initialSubject =
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-two-col">
                 <div>
                   <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '6px' }}>
                     Your Name <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>(optional)</span>
@@ -293,21 +260,19 @@ export default function RequestPlaylistModal({ isOpen, onClose, initialSubject =
                 </div>
               )}
 
-              <div style={{ marginTop: '10px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <div className="form-btn-row">
                 <button
                   type="button"
                   onClick={handleResetAndClose}
-                  className="clay-button"
+                  className="clay-button cancel-btn"
                   disabled={isLoading}
-                  style={{ padding: '10px 20px', fontSize: '0.9rem' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="clay-button clay-button-primary"
+                  className="clay-button clay-button-primary submit-btn"
                   disabled={isLoading}
-                  style={{ minWidth: '150px', padding: '10px 24px', fontSize: '0.9rem' }}
                 >
                   {isLoading ? 'Sending alert...' : '🚀 Submit Request'}
                 </button>
@@ -316,6 +281,100 @@ export default function RequestPlaylistModal({ isOpen, onClose, initialSubject =
           </>
         )}
       </div>
+
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(30, 20, 40, 0.45);
+          backdrop-filter: blur(6px);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+
+        .modal-dialog {
+          width: 100%;
+          max-width: 520px;
+          padding: 30px 32px;
+          background: var(--bg-card);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--clay-shadow-lg);
+          position: relative;
+        }
+
+        .modal-close-btn {
+          position: absolute;
+          top: 18px;
+          right: 18px;
+          background: none;
+          border: none;
+          fontSize: 1.4rem;
+          cursor: pointer;
+          color: var(--text-muted);
+          line-height: 1;
+          padding: 6px;
+        }
+
+        .form-two-col {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .form-btn-row {
+          margin-top: 10px;
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+        }
+
+        .cancel-btn {
+          padding: 10px 20px;
+          font-size: 0.9rem;
+        }
+
+        .submit-btn {
+          min-width: 150px;
+          padding: 10px 24px;
+          font-size: 0.9rem;
+        }
+
+        @media (max-width: 640px) {
+          .modal-overlay {
+            padding: 8px;
+          }
+
+          .modal-dialog {
+            padding: 20px 16px;
+            border-radius: var(--radius-lg);
+            max-height: 94vh;
+            overflow-y: auto;
+          }
+
+          .form-two-col {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .form-btn-row {
+            flex-direction: column-reverse;
+            align-items: stretch;
+            gap: 8px;
+          }
+
+          .cancel-btn,
+          .submit-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
     </div>
   );
 }

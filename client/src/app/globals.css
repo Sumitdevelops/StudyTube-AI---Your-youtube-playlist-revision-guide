@@ -252,11 +252,66 @@ body {
   margin-top: 24px;
 }
 
+/* ===== Responsive Mobile Breakpoints ===== */
+
 @media (max-width: 1024px) {
+  .app-container {
+    padding: 16px 20px;
+  }
+
   .main-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Video player & AI search comes FIRST on mobile/tablet; lecture list comes second */
+  .main-grid > main {
+    order: 1;
+  }
+  .main-grid > aside {
+    order: 2;
   }
 }
+
+@media (max-width: 640px) {
+  .app-container {
+    padding: 10px 12px;
+  }
+
+  /* Ensure inputs have at least 16px font size on mobile to prevent iOS Safari auto-zoom */
+  .clay-input,
+  input[type="text"],
+  input[type="email"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  .clay-button {
+    padding: 10px 16px;
+    font-size: 0.88rem;
+  }
+
+  .clay-card,
+  .clay-card-flat {
+    border-radius: var(--radius-md) !important;
+  }
+}
+
+/* Mobile Horizontal Swipe Pill List */
+.mobile-swipe-list {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.mobile-swipe-list::-webkit-scrollbar {
+  display: none;
+}
+
 
 /* ===== Animations ===== */
 

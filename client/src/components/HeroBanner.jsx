@@ -38,34 +38,11 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
   }
 
   return (
-    <div
-      className="clay-card-flat animate-pop-in"
-      style={{
-        marginTop: '20px',
-        marginBottom: '24px',
-        padding: '28px 32px',
-        background: 'linear-gradient(135deg, #ede6df 0%, #f4ede6 50%, #f7f1eb 100%)',
-        borderRadius: 'var(--radius-xl)',
-        boxShadow: 'var(--clay-shadow)',
-        position: 'relative',
-        border: '1.5px solid rgba(255, 255, 255, 0.6)',
-      }}
-    >
+    <div className="hero-banner clay-card-flat animate-pop-in">
       {/* Dismiss Button */}
       <button
         onClick={() => setIsDismissed(true)}
-        style={{
-          position: 'absolute',
-          top: '18px',
-          right: '20px',
-          background: 'none',
-          border: 'none',
-          fontSize: '1.1rem',
-          cursor: 'pointer',
-          color: 'var(--text-muted)',
-          padding: '4px',
-          lineHeight: 1,
-        }}
+        className="hero-dismiss-btn"
         title="Minimize banner"
         aria-label="Minimize banner"
       >
@@ -73,221 +50,292 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
       </button>
 
       {/* Top Tagline */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-        <span
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-            color: '#fff',
-            fontSize: '0.72rem',
-            fontWeight: 900,
-            padding: '4px 10px',
-            borderRadius: '999px',
-            letterSpacing: '0.5px',
-            textTransform: 'uppercase',
-            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-          }}
-        >
-          🚀 The Video Revision Superpower
+      <div className="hero-tagline-row">
+        <span className="hero-tagline-badge">
+          🚀 Video Revision Superpower
         </span>
-        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+        <span className="hero-tagline-text">
           Never scrub through 10-hour lecture playlists again.
         </span>
       </div>
 
       {/* Main Headline */}
-      <h2
-        style={{
-          fontSize: '1.65rem',
-          fontWeight: 900,
-          color: 'var(--text-primary)',
-          letterSpacing: '-0.5px',
-          lineHeight: 1.25,
-          marginBottom: '8px',
-        }}
-      >
+      <h2 className="hero-headline">
         Ask any question. AI explains it &{' '}
-        <span
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #d946ef 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
+        <span className="hero-headline-gradient">
           jumps straight to the exact second.
         </span>
       </h2>
 
-      <p
-        style={{
-          fontSize: '0.92rem',
-          color: 'var(--text-secondary)',
-          lineHeight: 1.6,
-          maxWidth: '820px',
-          marginBottom: '22px',
-        }}
-      >
+      <p className="hero-desc">
         Unlike regular chatbots that just spit out text, StudyTube AI has indexed full course transcripts into vector memory.
         When you search, it provides a concise answer and <b>automatically seeks the video player to the exact moment the professor explains it.</b>
       </p>
 
       {/* 3 Step Feature Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
-          marginBottom: '22px',
-        }}
-      >
+      <div className="hero-steps-grid">
         {/* Step 1 */}
-        <div
-          className="clay-card-flat"
-          style={{
-            padding: '16px 20px',
-            background: 'var(--bg-input)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--clay-shadow-sm)',
-            border: '1px solid rgba(255, 255, 255, 0.5)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '20px' }}>🔍</span>
-            <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.92rem' }}>
+        <div className="clay-card-flat hero-step-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '18px' }}>🔍</span>
+            <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
               1. Search Any Concept
             </span>
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
             Type any exam topic, doubt, or theorem from the syllabus.
           </p>
         </div>
 
         {/* Step 2 */}
-        <div
-          className="clay-card-flat"
-          style={{
-            padding: '16px 20px',
-            background: 'var(--bg-input)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--clay-shadow-sm)',
-            border: '1px solid rgba(255, 255, 255, 0.5)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '20px' }}>⚡</span>
-            <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.92rem' }}>
+        <div className="clay-card-flat hero-step-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '18px' }}>⚡</span>
+            <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
               2. Real-Time AI Answer
             </span>
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
             Groq RAG streams a crisp, structured English summary word-by-word.
           </p>
         </div>
 
         {/* Step 3 */}
-        <div
-          className="clay-card-flat"
-          style={{
-            padding: '16px 20px',
-            background: 'var(--accent-primary-surface)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--clay-shadow-sm)',
-            border: '1.5px solid var(--accent-primary)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ fontSize: '20px' }}>🎬</span>
-            <span style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '0.92rem' }}>
+        <div className="clay-card-flat hero-step-card hero-step-highlight">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '18px' }}>🎬</span>
+            <span style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
               3. Auto-Jumps Video!
             </span>
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
             The video player immediately seeks to the exact timestamp and starts playing.
           </p>
         </div>
       </div>
 
       {/* Interactive Try Live Buttons */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          flexWrap: 'wrap',
-          paddingTop: '6px',
-          borderTop: '1px solid rgba(166, 152, 138, 0.2)',
-        }}
-      >
-        <span style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-secondary)' }}>
-          ✨ Try 1-Click Interactive Demos:
+      <div className="hero-demo-row">
+        <span className="hero-demo-label">
+          ✨ Try 1-Click Demos:
         </span>
 
-        <button
-          onClick={() =>
-            onTryDemo &&
-            onTryDemo(
-              'What is DFA and how to construct it?',
-              'PLxCzCOWd7aiFM9Lj5G9G_76adtyb4ef7i',
-              'TOC(Theory of Computation)'
-            )
-          }
-          className="clay-button"
-          style={{
-            fontSize: '0.82rem',
-            padding: '7px 16px',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: '#ffffff',
-            boxShadow: 'var(--clay-shadow-sm)',
-          }}
-        >
-          📐 &ldquo;What is DFA?&rdquo; (TOC)
-        </button>
+        <div className="hero-pills-container">
+          <button
+            onClick={() =>
+              onTryDemo &&
+              onTryDemo(
+                'What is DFA and how to construct it?',
+                'PLxCzCOWd7aiFM9Lj5G9G_76adtyb4ef7i',
+                'TOC(Theory of Computation)'
+              )
+            }
+            className="clay-button hero-pill-btn"
+          >
+            📐 &ldquo;What is DFA?&rdquo; (TOC)
+          </button>
 
-        <button
-          onClick={() =>
-            onTryDemo &&
-            onTryDemo(
-              'What is RAG and how does it work?',
-              'PLW4OpyGE0RdY',
-              'AI Engineer In 10 Weeks | No Maths No Statistics | Crack AI Interviews'
-            )
-          }
-          className="clay-button"
-          style={{
-            fontSize: '0.82rem',
-            padding: '7px 16px',
-            fontWeight: 800,
-            color: 'var(--text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: '#ffffff',
-            boxShadow: 'var(--clay-shadow-sm)',
-          }}
-        >
-          🧠 &ldquo;What is RAG?&rdquo; (AI Course)
-        </button>
+          <button
+            onClick={() =>
+              onTryDemo &&
+              onTryDemo(
+                'What is RAG and how does it work?',
+                'PLW4OpyGE0RdY',
+                'AI Engineer In 10 Weeks | No Maths No Statistics | Crack AI Interviews'
+              )
+            }
+            className="clay-button hero-pill-btn"
+          >
+            🧠 &ldquo;What is RAG?&rdquo; (AI Course)
+          </button>
+        </div>
 
         <button
           onClick={onRequestClick}
-          className="clay-badge"
-          style={{
-            marginLeft: 'auto',
-            cursor: 'pointer',
-            border: 'none',
-            fontSize: '0.82rem',
-            padding: '7px 14px',
-            color: 'var(--accent-primary)',
-            fontWeight: 800,
-            background: 'var(--accent-primary-surface)',
-          }}
+          className="clay-badge hero-request-badge"
         >
           ✨ Request a Playlist &rarr;
         </button>
       </div>
+
+      <style jsx>{`
+        .hero-banner {
+          margin-top: 16px;
+          margin-bottom: 20px;
+          padding: 24px 28px;
+          background: linear-gradient(135deg, #ede6df 0%, #f4ede6 50%, #f7f1eb 100%);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--clay-shadow);
+          position: relative;
+          border: 1.5px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .hero-dismiss-btn {
+          position: absolute;
+          top: 16px;
+          right: 18px;
+          background: none;
+          border: none;
+          font-size: 1.1rem;
+          cursor: pointer;
+          color: var(--text-muted);
+          padding: 4px;
+          line-height: 1;
+        }
+
+        .hero-tagline-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 10px;
+          flex-wrap: wrap;
+        }
+
+        .hero-tagline-badge {
+          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+          color: #fff;
+          font-size: 0.72rem;
+          font-weight: 900;
+          padding: 3px 10px;
+          border-radius: 999px;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .hero-tagline-text {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+        }
+
+        .hero-headline {
+          font-size: 1.5rem;
+          font-weight: 900;
+          color: var(--text-primary);
+          letter-spacing: -0.5px;
+          line-height: 1.25;
+          margin-bottom: 8px;
+        }
+
+        .hero-headline-gradient {
+          background: linear-gradient(135deg, #6366f1 0%, #d946ef 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .hero-desc {
+          font-size: 0.88rem;
+          color: var(--text-secondary);
+          line-height: 1.55;
+          max-width: 820px;
+          margin-bottom: 18px;
+        }
+
+        .hero-steps-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .hero-step-card {
+          padding: 14px 16px;
+          background: var(--bg-input);
+          border-radius: var(--radius-md);
+          box-shadow: var(--clay-shadow-sm);
+          border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .hero-step-highlight {
+          background: var(--accent-primary-surface);
+          border: 1.5px solid var(--accent-primary);
+        }
+
+        .hero-demo-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          padding-top: 8px;
+          border-top: 1px solid rgba(166, 152, 138, 0.2);
+        }
+
+        .hero-demo-label {
+          font-size: 0.8rem;
+          font-weight: 800;
+          color: var(--text-secondary);
+          white-space: nowrap;
+        }
+
+        .hero-pills-container {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .hero-pill-btn {
+          font-size: 0.78rem;
+          padding: 6px 14px;
+          font-weight: 800;
+          color: var(--text-primary);
+          background: #ffffff;
+          box-shadow: var(--clay-shadow-sm);
+          white-space: nowrap;
+        }
+
+        .hero-request-badge {
+          margin-left: auto;
+          cursor: pointer;
+          border: none;
+          font-size: 0.8rem;
+          padding: 6px 14px;
+          color: var(--accent-primary);
+          font-weight: 800;
+          background: var(--accent-primary-surface);
+          white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+          .hero-banner {
+            padding: 16px 18px;
+            border-radius: var(--radius-lg);
+          }
+
+          .hero-headline {
+            font-size: 1.22rem;
+          }
+
+          .hero-desc {
+            font-size: 0.82rem;
+          }
+
+          .hero-steps-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .hero-demo-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+          }
+
+          .hero-pills-container {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+          }
+
+          .hero-request-badge {
+            margin-left: 0;
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+            padding: 8px 12px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

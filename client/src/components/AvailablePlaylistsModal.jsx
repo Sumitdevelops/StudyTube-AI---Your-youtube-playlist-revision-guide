@@ -37,105 +37,47 @@ export default function AvailablePlaylistsModal({
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(30, 20, 40, 0.45)',
-        backdropFilter: 'blur(6px)',
-        zIndex: 9998,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px',
-      }}
+      className="modal-overlay"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
-        className="clay-card animate-pop-in"
-        style={{
-          width: '100%',
-          maxWidth: '740px',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '28px 32px',
-          background: 'var(--bg-card)',
-          borderRadius: 'var(--radius-xl)',
-          boxShadow: 'var(--clay-shadow-lg)',
-          position: 'relative',
-        }}
-      >
+      <div className="modal-dialog clay-card animate-pop-in">
         {/* Close Button */}
         <button
           onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'none',
-            border: 'none',
-            fontSize: '1.4rem',
-            cursor: 'pointer',
-            color: 'var(--text-muted)',
-            lineHeight: 1,
-            zIndex: 10,
-          }}
+          className="modal-close-btn"
           aria-label="Close modal"
         >
           ✕
         </button>
 
         {/* Modal Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--accent-primary)',
-              boxShadow: 'var(--clay-shadow-accent)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '24px',
-            }}
-          >
+        <div className="modal-header-row">
+          <div className="modal-header-icon">
             📚
           </div>
           <div>
-            <h2
-              style={{
-                fontSize: '1.35rem',
-                fontWeight: 900,
-                color: 'var(--text-primary)',
-                lineHeight: 1.2,
-              }}
-            >
+            <h2 className="modal-title">
               Available Courses &amp; Playlists
             </h2>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            <p className="modal-subtitle">
               Explore indexed courses, search by topic, or request a new course!
             </p>
           </div>
         </div>
 
         {/* Course Search Box */}
-        <div style={{ position: 'relative', marginBottom: '20px' }}>
+        <div style={{ position: 'relative', marginBottom: '16px' }}>
           <input
             className="clay-input"
             type="text"
-            placeholder="Search available courses (e.g. TOC, AI, Python, Operating Systems)..."
+            placeholder="Search courses (e.g. TOC, AI, Python)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
               paddingLeft: '44px',
               paddingRight: searchQuery ? '40px' : '16px',
-              fontSize: '0.95rem',
               width: '100%',
             }}
             autoFocus
@@ -165,6 +107,7 @@ export default function AvailablePlaylistsModal({
                 cursor: 'pointer',
                 color: 'var(--text-muted)',
                 fontSize: '0.9rem',
+                padding: '4px',
               }}
             >
               ✕
@@ -173,47 +116,20 @@ export default function AvailablePlaylistsModal({
         </div>
 
         {/* Results Counter / Status */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '12px',
-            fontSize: '0.8rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-          }}
-        >
+        <div className="modal-meta-row">
           <span>
             {filteredPlaylists.length} {filteredPlaylists.length === 1 ? 'course' : 'courses'} available
           </span>
           <button
             onClick={() => handleRequestCourse(searchQuery)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--accent-primary)',
-              cursor: 'pointer',
-              fontWeight: 800,
-              fontSize: '0.8rem',
-              textDecoration: 'underline',
-            }}
+            className="request-link-btn"
           >
             Can&apos;t find your course? Request it ✨
           </button>
         </div>
 
         {/* Playlists Cards Grid (Scrollable) */}
-        <div
-          style={{
-            overflowY: 'auto',
-            flex: 1,
-            paddingRight: '6px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '14px',
-          }}
-        >
+        <div className="course-cards-list">
           {filteredPlaylists.length > 0 ? (
             filteredPlaylists.map((playlist) => {
               const isActive = playlist.playlist_id === activePlaylistId;
@@ -225,147 +141,66 @@ export default function AvailablePlaylistsModal({
               return (
                 <div
                   key={playlist.playlist_id}
-                  className="clay-card-flat animate-fade-in"
-                  style={{
-                    padding: '16px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '18px',
-                    background: isActive ? 'var(--accent-primary-surface)' : 'var(--bg-input)',
-                    borderRadius: 'var(--radius-lg)',
-                    boxShadow: 'var(--clay-shadow-sm)',
-                    border: isActive ? '2px solid var(--accent-primary)' : '1px solid rgba(255, 255, 255, 0.4)',
-                    transition: 'all 0.2s ease',
-                  }}
+                  className={`course-card clay-card-flat animate-fade-in ${isActive ? 'is-active-course' : ''}`}
                 >
-                  {/* Playlist Thumbnail */}
-                  <div
-                    style={{
-                      width: '100px',
-                      height: '62px',
-                      borderRadius: 'var(--radius-sm)',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      background: '#dcd4cc',
-                      boxShadow: 'var(--clay-shadow-sm)',
-                      position: 'relative',
-                    }}
-                  >
-                    {playlist.thumbnail_url ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={playlist.thumbnail_url}
-                        alt={playlist.playlist_title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '24px',
-                        }}
-                      >
-                        🎓
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Course Details */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                      <h3
-                        style={{
-                          fontSize: '0.98rem',
-                          fontWeight: 800,
-                          color: 'var(--text-primary)',
-                          margin: 0,
-                        }}
-                      >
-                        {shortTitle}
-                      </h3>
-                      {isActive && (
-                        <span
-                          style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 900,
-                            padding: '2px 8px',
-                            borderRadius: '999px',
-                            background: 'var(--accent-primary)',
-                            color: '#fff',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.4px',
-                          }}
-                        >
-                          ACTIVE
-                        </span>
+                  {/* Top / Main info row */}
+                  <div className="course-main-content">
+                    {/* Playlist Thumbnail */}
+                    <div className="course-thumb-box">
+                      {playlist.thumbnail_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={playlist.thumbnail_url}
+                          alt={playlist.playlist_title}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <div className="course-thumb-fallback">
+                          🎓
+                        </div>
                       )}
                     </div>
 
-                    <p
-                      style={{
-                        fontSize: '0.78rem',
-                        color: 'var(--text-muted)',
-                        marginBottom: '8px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                      title={playlist.playlist_title}
-                    >
-                      {playlist.playlist_title}
-                    </p>
+                    {/* Course Details */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                        <h3 className="course-title">
+                          {shortTitle}
+                        </h3>
+                        {isActive && (
+                          <span className="active-course-pill">
+                            ACTIVE
+                          </span>
+                        )}
+                      </div>
 
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {playlist.video_count > 0 && (
-                        <span
-                          style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            color: 'var(--text-secondary)',
-                            background: 'rgba(255,255,255,0.7)',
-                            padding: '2px 8px',
-                            borderRadius: 'var(--radius-sm)',
-                          }}
-                        >
-                          🎬 {playlist.video_count} Lectures
-                        </span>
-                      )}
-                      {playlist.chunk_count > 0 && (
-                        <span
-                          style={{
-                            fontSize: '0.72rem',
-                            fontWeight: 700,
-                            color: 'var(--text-secondary)',
-                            background: 'rgba(255,255,255,0.7)',
-                            padding: '2px 8px',
-                            borderRadius: 'var(--radius-sm)',
-                          }}
-                        >
-                          ⚡ {playlist.chunk_count} Knowledge Chunks
-                        </span>
-                      )}
+                      <p
+                        className="course-full-title"
+                        title={playlist.playlist_title}
+                      >
+                        {playlist.playlist_title}
+                      </p>
+
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {playlist.video_count > 0 && (
+                          <span className="course-stat-badge">
+                            🎬 {playlist.video_count} Lectures
+                          </span>
+                        )}
+                        {playlist.chunk_count > 0 && (
+                          <span className="course-stat-badge">
+                            ⚡ {playlist.chunk_count} Chunks
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Select / Action Button */}
-                  <div style={{ flexShrink: 0 }}>
+                  <div className="course-action-col">
                     <button
                       onClick={() => handleSelect(playlist.playlist_id)}
-                      className="clay-button"
-                      style={{
-                        padding: '9px 18px',
-                        fontSize: '0.84rem',
-                        fontWeight: 800,
-                        background: isActive ? 'var(--accent-primary)' : 'var(--bg-card)',
-                        color: isActive ? '#fff' : 'var(--text-primary)',
-                        boxShadow: 'var(--clay-shadow-sm)',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
+                      className="clay-button course-select-btn"
                     >
                       {isActive ? '✓ Selected' : '🚀 Start Revising'}
                     </button>
@@ -375,69 +210,20 @@ export default function AvailablePlaylistsModal({
             })
           ) : (
             /* Empty State when searched course is not found */
-            <div
-              className="clay-card-flat animate-pop-in"
-              style={{
-                textAlign: 'center',
-                padding: '36px 24px',
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%)',
-                border: '1.5px dashed rgba(99, 102, 241, 0.35)',
-                borderRadius: 'var(--radius-lg)',
-              }}
-            >
-              <div
-                style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: '50%',
-                  background: 'var(--accent-primary-surface)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '28px',
-                  marginBottom: '14px',
-                  boxShadow: 'var(--clay-shadow-sm)',
-                }}
-              >
+            <div className="empty-state-card clay-card-flat animate-pop-in">
+              <div className="empty-icon-circle">
                 🔍
               </div>
-              <h3
-                style={{
-                  fontSize: '1.15rem',
-                  fontWeight: 900,
-                  color: 'var(--text-primary)',
-                  marginBottom: '6px',
-                }}
-              >
+              <h3 className="empty-title">
                 No course found for &ldquo;{searchQuery}&rdquo;
               </h3>
-              <p
-                style={{
-                  fontSize: '0.86rem',
-                  color: 'var(--text-secondary)',
-                  maxWidth: '460px',
-                  margin: '0 auto 20px',
-                  lineHeight: 1.5,
-                }}
-              >
+              <p className="empty-desc">
                 This playlist has not been indexed into StudyTube AI yet. You can request the admin to index it, and we will notify you on Telegram once it is live!
               </p>
 
               <button
                 onClick={() => handleRequestCourse(searchQuery)}
-                className="clay-button"
-                style={{
-                  padding: '11px 24px',
-                  fontSize: '0.92rem',
-                  fontWeight: 800,
-                  background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-                  color: '#ffffff',
-                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
+                className="clay-button empty-request-btn"
               >
                 ✨ Request &ldquo;{searchQuery}&rdquo; Playlist
               </button>
@@ -445,6 +231,306 @@ export default function AvailablePlaylistsModal({
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(30, 20, 40, 0.45);
+          backdrop-filter: blur(6px);
+          z-index: 9998;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+
+        .modal-dialog {
+          width: 100%;
+          maxWidth: 740px;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          padding: 28px 32px;
+          background: var(--bg-card);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--clay-shadow-lg);
+          position: relative;
+        }
+
+        .modal-close-btn {
+          position: absolute;
+          top: 18px;
+          right: 18px;
+          background: none;
+          border: none;
+          font-size: 1.4rem;
+          cursor: pointer;
+          color: var(--text-muted);
+          line-height: 1;
+          z-index: 10;
+          padding: 6px;
+        }
+
+        .modal-header-row {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 16px;
+        }
+
+        .modal-header-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: var(--radius-md);
+          background: var(--accent-primary);
+          box-shadow: var(--clay-shadow-accent);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          flex-shrink: 0;
+        }
+
+        .modal-title {
+          font-size: 1.3rem;
+          font-weight: 900;
+          color: var(--text-primary);
+          line-height: 1.2;
+        }
+
+        .modal-subtitle {
+          font-size: 0.8rem;
+          color: var(--text-muted);
+          margin-top: 2px;
+        }
+
+        .modal-meta-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .request-link-btn {
+          background: none;
+          border: none;
+          color: var(--accent-primary);
+          cursor: pointer;
+          font-weight: 800;
+          font-size: 0.78rem;
+          text-decoration: underline;
+        }
+
+        .course-cards-list {
+          overflow-y: auto;
+          flex: 1;
+          padding-right: 4px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .course-card {
+          padding: 16px 20px;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          background: var(--bg-input);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--clay-shadow-sm);
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          transition: all 0.2s ease;
+        }
+
+        .course-card.is-active-course {
+          background: var(--accent-primary-surface);
+          border: 2px solid var(--accent-primary);
+        }
+
+        .course-main-content {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .course-thumb-box {
+          width: 95px;
+          height: 60px;
+          border-radius: var(--radius-sm);
+          overflow: hidden;
+          flex-shrink: 0;
+          background: #dcd4cc;
+          box-shadow: var(--clay-shadow-sm);
+        }
+
+        .course-thumb-fallback {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+        }
+
+        .course-title {
+          font-size: 0.96rem;
+          font-weight: 800;
+          color: var(--text-primary);
+          margin: 0;
+        }
+
+        .active-course-pill {
+          font-size: 0.66rem;
+          font-weight: 900;
+          padding: 2px 7px;
+          border-radius: 999px;
+          background: var(--accent-primary);
+          color: #fff;
+          letter-spacing: 0.4px;
+        }
+
+        .course-full-title {
+          font-size: 0.76rem;
+          color: var(--text-muted);
+          margin-bottom: 6px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .course-stat-badge {
+          font-size: 0.7rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+          background: rgba(255, 255, 255, 0.7);
+          padding: 2px 7px;
+          border-radius: var(--radius-sm);
+        }
+
+        .course-action-col {
+          flex-shrink: 0;
+        }
+
+        .course-select-btn {
+          padding: 9px 16px;
+          font-size: 0.82rem;
+          font-weight: 800;
+          box-shadow: var(--clay-shadow-sm);
+          white-space: nowrap;
+        }
+
+        .empty-state-card {
+          text-align: center;
+          padding: 30px 18px;
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(168, 85, 247, 0.05) 100%);
+          border: 1.5px dashed rgba(99, 102, 241, 0.35);
+          border-radius: var(--radius-lg);
+        }
+
+        .empty-icon-circle {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: var(--accent-primary-surface);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          margin-bottom: 12px;
+          box-shadow: var(--clay-shadow-sm);
+        }
+
+        .empty-title {
+          font-size: 1.1rem;
+          font-weight: 900;
+          color: var(--text-primary);
+          margin-bottom: 6px;
+        }
+
+        .empty-desc {
+          font-size: 0.84rem;
+          color: var(--text-secondary);
+          max-width: 440px;
+          margin: 0 auto 18px;
+          line-height: 1.5;
+        }
+
+        .empty-request-btn {
+          padding: 10px 22px;
+          font-size: 0.88rem;
+          font-weight: 800;
+          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+          color: #ffffff;
+          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+          cursor: pointer;
+        }
+
+        @media (max-width: 640px) {
+          .modal-overlay {
+            padding: 8px;
+          }
+
+          .modal-dialog {
+            padding: 18px 14px;
+            max-height: 94vh;
+            border-radius: var(--radius-lg);
+          }
+
+          .modal-title {
+            font-size: 1.12rem;
+          }
+
+          .modal-header-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+          }
+
+          .course-card {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 12px;
+          }
+
+          .course-thumb-box {
+            width: 76px;
+            height: 48px;
+          }
+
+          .course-title {
+            font-size: 0.88rem;
+          }
+
+          .course-action-col {
+            width: 100%;
+          }
+
+          .course-select-btn {
+            width: 100%;
+            justify-content: center;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+          }
+
+          .empty-request-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -15,8 +15,11 @@ def get_system_prompt(playlist_title: str) -> str:
 
 CRITICAL INSTRUCTIONS:
 1. RELEVANCE CHECK: If the provided transcript excerpts do NOT actually discuss or contain the topic the user asked about, or if the user question is unrelated to "{playlist_title}", you MUST state honestly:
-"This topic is not covered in '{playlist_title}'. Please ask a question related to the topics covered in this course syllabus."
+"This topic is not covered in '{playlist_title}'. Please ask a question related to the topics covered in this course syllabus.
+
+💡 **Want this course or topic added?** You can request the admin to index it using the Request button below!"
 And under ===ENGLISH_SOURCES=== write NONE. Do NOT cite any irrelevant videos.
+
 
 2. LANGUAGE: You MUST ALWAYS answer entirely in clear, natural ENGLISH. Even if the video transcripts are in Hindi, Hinglish, or Devanagari script, NEVER write in Hindi or Devanagari script. All explanations, bullet points, and source summaries MUST BE IN ENGLISH.
 
@@ -167,9 +170,10 @@ def search_rag(query: str, playlist_id: str, top_k: int = 5) -> Dict[str, Any]:
     if not has_keyword_boost and not has_title_match and not has_strong_vector_match:
         logger.info(f"🛑 No relevant topic found for '{trimmed_query}' in '{playlist_title}'. (raw: {top_cand['raw_score']:.3f}, matching titles: 0)")
         return {
-            "answer": f"This topic is not covered in '{playlist_title}'. Please ask a question related to the topics covered in this course syllabus.",
+            "answer": f"This topic is not covered in '{playlist_title}'. Please ask a question related to this course syllabus.\n\n💡 **Want this course or topic added?** Click the **Request This Playlist** button below to notify the admin!",
             "sources": []
         }
+
 
     # Filter to valid candidates only
     valid_candidates = [
@@ -387,7 +391,8 @@ def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator
     has_strong_vector_match = top_cand and (top_cand["raw_score"] >= 0.35)
 
     if not has_keyword_boost and not has_title_match and not has_strong_vector_match:
-        yield f"data: {json.dumps({'type': 'token', 'text': f'This topic is not covered in \"{playlist_title}\". Please ask a question related to this course syllabus.'})}\n\n"
+        not_covered_text = f"This topic is not covered in \"{playlist_title}\". Please ask a question related to this course syllabus.\n\n💡 **Want this course or topic added?** Click the **Request This Playlist** button below to notify the admin!"
+        yield f"data: {json.dumps({'type': 'token', 'text': not_covered_text})}\n\n"
         yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
         return
@@ -441,10 +446,11 @@ Provide a comprehensive, clearly explained educational response in English Markd
     stream_system_prompt = f"""You are an expert, dedicated AI study tutor for the YouTube course: "{playlist_title}".
 CRITICAL INSTRUCTIONS:
 1. FOCUS: Answer questions strictly based on the syllabus and transcript excerpts of "{playlist_title}".
-2. RELEVANCE: If the question is not covered in this course, state clearly: "This topic is not covered in '{playlist_title}'. Please ask a question related to this course syllabus."
+2. RELEVANCE: If the question is not covered in this course, state clearly: "This topic is not covered in '{playlist_title}'. Please ask a question related to this course syllabus. 💡 Want this course or topic added? Click the Request button below to notify the admin!"
 3. LANGUAGE: ALWAYS answer entirely in clear, natural ENGLISH. Even if the video transcripts are in Hindi, Hinglish, or Devanagari script, NEVER write in Hindi or Devanagari script. All explanations, bullet points, and summaries MUST BE IN ENGLISH.
 4. CITATIONS: Cite the exact video title and timestamp: [Video Title @ timestamp].
 5. FORMATTING: Use clean Markdown with headers, bullet points, bold keywords, and concise explanations."""
+
 
     # 6. Stream Groq tokens
     try:

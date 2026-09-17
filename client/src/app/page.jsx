@@ -34,6 +34,13 @@ export default function Home() {
   const [activeSourceIdx, setActiveSourceIdx] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [requestModalSubject, setRequestModalSubject] = useState('');
+  const [lastQuery, setLastQuery] = useState('');
+
+  const handleOpenRequestModal = (initialSubject = '') => {
+    setRequestModalSubject(initialSubject || '');
+    setIsRequestModalOpen(true);
+  };
 
   // Check API health on mount
   useEffect(() => {
@@ -127,6 +134,7 @@ export default function Home() {
   // Search handler with real-time SSE streaming
   const handleSearch = async (query) => {
     if (!activePlaylistId) return;
+    setLastQuery(query);
     setIsSearching(true);
     setAnswer('');
     setSources([]);
@@ -199,12 +207,16 @@ export default function Home() {
       <Header
         vectorCount={vectorCount}
         isConnected={isConnected}
-        onRequestPlaylist={() => setIsRequestModalOpen(true)}
+        onRequestPlaylist={() => handleOpenRequestModal('')}
       />
 
       {/* Playlist Input */}
       <div style={{ marginTop: '24px' }}>
-        <PlaylistInput onIngest={handleIngest} isLoading={isIngesting} />
+        <PlaylistInput
+          onIngest={handleIngest}
+          isLoading={isIngesting}
+          onRequestClick={() => handleOpenRequestModal('')}
+        />
 
         {/* Ingestion Status */}
         {ingestStatus && (
@@ -273,6 +285,8 @@ export default function Home() {
             answer={answer}
             isLoading={isSearching}
             playlistTitle={activePlaylistTitle}
+            onRequestPlaylist={handleOpenRequestModal}
+            userQuery={lastQuery}
           />
 
 
@@ -302,6 +316,7 @@ export default function Home() {
       <RequestPlaylistModal
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
+        initialSubject={requestModalSubject}
       />
     </div>
   );

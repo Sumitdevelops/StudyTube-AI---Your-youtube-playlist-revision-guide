@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function PlaylistInput({ onIngest, isLoading }) {
+export default function PlaylistInput({ onIngest, isLoading, onRequestClick }) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
 
@@ -27,37 +27,62 @@ export default function PlaylistInput({ onIngest, isLoading }) {
       className="clay-card-flat animate-pop-in"
       style={{ padding: '28px', marginBottom: '24px' }}
     >
-      <h2
-        style={{
-          fontSize: '1.1rem',
-          fontWeight: 800,
-          color: 'var(--text-primary)',
-          marginBottom: '16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-        }}
-      >
-        <span
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+        <h2
           style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: 'var(--radius-sm)',
-            background: 'var(--accent-secondary)',
-            boxShadow:
-              '3px 3px 6px rgba(200, 140, 120, 0.3), -2px -2px 4px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5)',
+            fontSize: '1.1rem',
+            fontWeight: 800,
+            color: 'var(--text-primary)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px',
+            gap: '10px',
+            margin: 0,
           }}
         >
-          📺
-        </span>
-        Add YouTube Playlist
-      </h2>
+          <span
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'var(--accent-secondary)',
+              boxShadow:
+                '3px 3px 6px rgba(200, 140, 120, 0.3), -2px -2px 4px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '18px',
+            }}
+          >
+            📺
+          </span>
+          Add YouTube Playlist
+        </h2>
+
+        {onRequestClick && (
+          <button
+            type="button"
+            onClick={onRequestClick}
+            className="clay-badge"
+            style={{
+              cursor: 'pointer',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              fontSize: '0.8rem',
+              padding: '6px 14px',
+              color: 'var(--accent-primary)',
+              fontWeight: 800,
+              background: 'var(--accent-primary-surface)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            ✨ Can&apos;t find your subject? Request it!
+          </button>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '12px' }}>
+
         <input
           className="clay-input"
           type="text"

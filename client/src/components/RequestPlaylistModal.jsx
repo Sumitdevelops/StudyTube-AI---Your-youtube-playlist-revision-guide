@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { requestPlaylist } from '@/lib/api';
 
-export default function RequestPlaylistModal({ isOpen, onClose }) {
+export default function RequestPlaylistModal({ isOpen, onClose, initialSubject = '' }) {
   const [subject, setSubject] = useState('');
   const [playlistUrl, setPlaylistUrl] = useState('');
   const [name, setName] = useState('');
@@ -13,6 +13,17 @@ export default function RequestPlaylistModal({ isOpen, onClose }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen && initialSubject) {
+      const clean = initialSubject
+        .replace(/^(what is|explain|tell me about|how to|how does|define)\s+/i, '')
+        .replace(/\?+$/, '')
+        .trim();
+      setSubject(clean || initialSubject);
+    }
+  }, [isOpen, initialSubject]);
+
 
   if (!isOpen) return null;
 

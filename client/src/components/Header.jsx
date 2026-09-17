@@ -60,18 +60,38 @@ export default function Header({ vectorCount, isConnected, onRequestPlaylist }) 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
           onClick={onRequestPlaylist}
-          className="clay-button clay-button-primary"
+          className="clay-button"
           style={{
-            fontSize: '0.84rem',
-            padding: '8px 16px',
+            fontSize: '0.86rem',
+            padding: '8px 18px',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            fontWeight: 700,
+            gap: '8px',
+            fontWeight: 800,
+            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+            color: '#ffffff',
+            border: '1.5px solid rgba(255, 255, 255, 0.3)',
+            boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.4)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
           }}
         >
-          ✨ Request Playlist
+          <span style={{ fontSize: '1.05rem', animation: 'spin-slow 8s linear infinite' }}>✨</span>
+          <span>Request a Playlist</span>
+          <span
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.22)',
+              padding: '2px 7px',
+              borderRadius: '999px',
+              fontSize: '0.7rem',
+              letterSpacing: '0.5px',
+              fontWeight: 900,
+            }}
+          >
+            FREE
+          </span>
         </button>
+
 
         <div className="clay-badge-success">
           <span

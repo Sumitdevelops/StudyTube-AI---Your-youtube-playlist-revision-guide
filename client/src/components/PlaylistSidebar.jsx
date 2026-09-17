@@ -2,7 +2,15 @@
 
 import { formatDuration } from '@/lib/formatters';
 
-export default function PlaylistSidebar({ videos, selectedVideoId, onSelectVideo, playlistTitle }) {
+export default function PlaylistSidebar({
+  videos,
+  selectedVideoId,
+  onSelectVideo,
+  playlistTitle,
+  playlists = [],
+  activePlaylistId = '',
+  onSelectPlaylist
+}) {
   if (!videos || videos.length === 0) {
     return (
       <div
@@ -41,6 +49,48 @@ export default function PlaylistSidebar({ videos, selectedVideoId, onSelectVideo
         gap: '8px',
       }}
     >
+      {/* Playlist Selector Dropdown (when multiple playlists exist) */}
+      {playlists && playlists.length > 1 && onSelectPlaylist && (
+        <div style={{ marginBottom: '10px', padding: '0 2px' }}>
+          <label
+            style={{
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              display: 'block',
+              marginBottom: '6px',
+            }}
+          >
+            📚 Switch Playlist ({playlists.length})
+          </label>
+          <select
+            value={activePlaylistId || ''}
+            onChange={(e) => onSelectPlaylist(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '9px 12px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              borderRadius: '12px',
+              cursor: 'pointer',
+              outline: 'none',
+              background: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              border: '1px solid rgba(0,0,0,0.1)',
+              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
+            }}
+          >
+            {playlists.map((pl) => (
+              <option key={pl.playlist_id} value={pl.playlist_id}>
+                {pl.playlist_title}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Playlist Title */}
       <div style={{ marginBottom: '8px', padding: '0 4px' }}>
         <h2

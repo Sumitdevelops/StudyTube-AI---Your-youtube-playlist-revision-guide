@@ -78,6 +78,17 @@ export default function Home() {
     }
   };
 
+  // Switch playlist handler
+  const handleSelectPlaylist = (playlistId) => {
+    const pl = playlists.find(p => p.playlist_id === playlistId);
+    if (!pl) return;
+    setActivePlaylistId(pl.playlist_id);
+    setActivePlaylistTitle(pl.playlist_title);
+    loadPlaylistVideos(pl.playlist_id);
+    setAnswer('');
+    setSources([]);
+  };
+
   // Ingest a playlist
   const handleIngest = async (url) => {
     setIsIngesting(true);
@@ -220,6 +231,9 @@ export default function Home() {
             selectedVideoId={selectedVideoId}
             onSelectVideo={handleSelectVideo}
             playlistTitle={activePlaylistTitle}
+            playlists={playlists}
+            activePlaylistId={activePlaylistId}
+            onSelectPlaylist={handleSelectPlaylist}
           />
         </aside>
 

@@ -26,14 +26,32 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS middleware for Next.js frontend on localhost:3000
+from fastapi.responses import JSONResponse
+from fastapi import Request
+
+# CORS middleware allowing all origins including any Vercel preview domain
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_origin_regex=r".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Global unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 # Mount routes under /api
 app.include_router(health_router, prefix="/api", tags=["Health"])

@@ -36,16 +36,39 @@ export default function Home() {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestModalSubject, setRequestModalSubject] = useState('');
   const [lastQuery, setLastQuery] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const handleOpenRequestModal = (initialSubject = '') => {
     setRequestModalSubject(initialSubject || '');
     setIsRequestModalOpen(true);
   };
 
+  const handleAdminToggle = () => {
+    if (isAdmin) {
+      setIsAdmin(false);
+      localStorage.removeItem('studytube_admin');
+    } else {
+      const pass = window.prompt('Enter Admin Passcode:');
+      if (pass === 'admin' || pass === 'admin123') {
+        setIsAdmin(true);
+        localStorage.setItem('studytube_admin', 'true');
+      } else if (pass !== null) {
+        alert('Incorrect admin passcode.');
+      }
+    }
+  };
+
   // Check API health on mount
   useEffect(() => {
     checkHealth();
     loadPlaylists();
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('admin') === 'true' || localStorage.getItem('studytube_admin') === 'true') {
+        setIsAdmin(true);
+      }
+    }
   }, []);
 
   const checkHealth = async () => {
@@ -210,42 +233,75 @@ export default function Home() {
         onRequestPlaylist={() => handleOpenRequestModal('')}
       />
 
-      {/* Playlist Input */}
-      <div style={{ marginTop: '24px' }}>
-        <PlaylistInput
-          onIngest={handleIngest}
-          isLoading={isIngesting}
-          onRequestClick={() => handleOpenRequestModal('')}
-        />
-
-        {/* Ingestion Status */}
-        {ingestStatus && (
+      {/* Admin-Only Playlist Ingestion Panel */}
+      {isAdmin && (
+        <div style={{ marginTop: '24px' }}>
           <div
-            className="clay-card-flat animate-fade-in"
             style={{
-              padding: '14px 22px',
-              marginBottom: '20px',
-              fontSize: '0.88rem',
-              fontWeight: 600,
-              color: ingestStatus.startsWith('✅')
-                ? '#1a5e3a'
-                : ingestStatus.startsWith('❌')
-                ? '#c0392b'
-                : 'var(--text-secondary)',
-              background: ingestStatus.startsWith('✅')
-                ? 'var(--accent-success-surface)'
-                : ingestStatus.startsWith('❌')
-                ? 'var(--accent-secondary-surface)'
-                : 'var(--bg-card)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '10px',
+              padding: '8px 16px',
+              background: 'rgba(99, 102, 241, 0.1)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.82rem',
+              color: 'var(--accent-primary)',
+              fontWeight: 800,
             }}
           >
-            {ingestStatus}
+            <span>👑 Admin Ingestion Panel (Visible to Admin Only)</span>
+            <button
+              onClick={handleAdminToggle}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                textDecoration: 'underline',
+              }}
+            >
+              Exit Admin
+            </button>
           </div>
-        )}
-      </div>
+
+          <PlaylistInput
+            onIngest={handleIngest}
+            isLoading={isIngesting}
+            onRequestClick={() => handleOpenRequestModal('')}
+          />
+
+          {/* Ingestion Status */}
+          {ingestStatus && (
+            <div
+              className="clay-card-flat animate-fade-in"
+              style={{
+                padding: '14px 22px',
+                marginBottom: '20px',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                color: ingestStatus.startsWith('✅')
+                  ? '#1a5e3a'
+                  : ingestStatus.startsWith('❌')
+                  ? '#c0392b'
+                  : 'var(--text-secondary)',
+                background: ingestStatus.startsWith('✅')
+                  ? 'var(--accent-success-surface)'
+                  : ingestStatus.startsWith('❌')
+                  ? 'var(--accent-secondary-surface)'
+                  : 'var(--bg-card)',
+              }}
+            >
+              {ingestStatus}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main Layout Grid */}
-      <div className="main-grid">
+      <div className="main-grid" style={{ marginTop: '24px' }}>
+
         {/* Left: Playlist Sidebar */}
         <aside>
           <PlaylistSidebar
@@ -307,10 +363,33 @@ export default function Home() {
           fontSize: '0.8rem',
           fontWeight: 600,
           color: 'var(--text-muted)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '14px',
+          flexWrap: 'wrap',
         }}
       >
-        Built with 🧠 Groq + ⚡ Vector Search + 🎬 YouTube
+        <span>Built with 🧠 Groq + ⚡ Vector Search + 🎬 YouTube</span>
+        <span>•</span>
+        <button
+          onClick={handleAdminToggle}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '0.78rem',
+            opacity: 0.5,
+            transition: 'opacity 0.2s',
+          }}
+          onMouseEnter={(e) => (e.target.style.opacity = 1)}
+          onMouseLeave={(e) => (e.target.style.opacity = 0.5)}
+        >
+          {isAdmin ? '👑 Admin Mode (Logout)' : 'Admin Portal 🔐'}
+        </button>
       </footer>
+
 
       {/* Request Playlist Modal */}
       <RequestPlaylistModal

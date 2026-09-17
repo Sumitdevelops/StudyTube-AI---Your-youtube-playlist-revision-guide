@@ -12,7 +12,8 @@ async function apiFetch(path, options = {}) {
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.error || `API error: ${res.status}`);
+    const msg = data.detail || data.error || (typeof data === 'string' ? data : `API error: ${res.status}`);
+    throw new Error(msg);
   }
   return data;
 }

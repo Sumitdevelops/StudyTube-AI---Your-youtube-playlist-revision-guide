@@ -1,6 +1,7 @@
 import re
+import json
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Generator
 from groq import Groq
 from app.config import settings
 from app.db.vector_store import vector_store
@@ -271,3 +272,177 @@ Remember:
         "answer": answer,
         "sources": sources
     }
+
+def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator[str, None, None]:
+    """
+    Execute streaming RAG pipeline using Server-Sent Events (SSE).
+    Emits:
+      - {"type": "sources", "sources": [...]}
+      - {"type": "token", "text": "..."}
+      - {"type": "done"}
+    """
+    if not settings.GROQ_API_KEY:
+        yield f"data: {json.dumps({'type': 'error', 'message': 'GROQ_API_KEY is not configured in .env'})}\n\n"
+        return
+
+    trimmed_query = (query or "").strip()
+    if len(trimmed_query) < 2 or not re.search(r"[a-zA-Z0-9]", trimmed_query):
+        yield f"data: {json.dumps({'type': 'token', 'text': 'Please enter a valid question or topic related to this course playlist.'})}\n\n"
+        yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        return
+
+    logger.info(f"Streaming query: '{trimmed_query}' in playlist: {playlist_id}")
+
+    # 1. Syllabus check
+    playlist_videos = vector_store.get_playlist_videos(playlist_id)
+    if not playlist_videos:
+        yield f"data: {json.dumps({'type': 'token', 'text': 'This playlist has not been indexed yet. Please index it first.'})}\n\n"
+        yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        return
+
+    # 2. Keywords
+    clean_text = re.sub(r"[^a-zA-Z0-9\s]", " ", trimmed_query.lower())
+    raw_words = clean_text.split()
+    raw_keywords = [w for w in raw_words if w not in STOP_WORDS and (len(w) > 2 or w in ('ai', 'ml'))]
+
+    expanded_keywords = list(raw_keywords)
+    for kw in raw_keywords:
+        if kw in PHONETIC_MAP:
+            expanded_keywords.extend(PHONETIC_MAP[kw])
+
+    all_keywords = list(dict.fromkeys(expanded_keywords))
+    matching_title_videos = [
+        v for v in playlist_videos
+        if any(kw in v.get("title", "").lower() for kw in all_keywords)
+    ]
+
+    # 3. Dense vector search via Qdrant
+    query_vector = embed_text(trimmed_query)
+    candidates = vector_store.query(
+        vector=query_vector,
+        filter_dict={"playlist_id": playlist_id},
+        top_k=60
+    )
+
+    if not candidates:
+        yield f"data: {json.dumps({'type': 'token', 'text': 'This playlist has not been indexed yet. Please index it first.'})}\n\n"
+        yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        return
+
+    # 4. Hybrid score fusion
+    scored_candidates = []
+    for cand in candidates:
+        meta = cand.get("metadata", {})
+        title = meta.get("video_title", "").lower()
+        text = meta.get("chunk_text", "").lower()
+
+        boost = 0.0
+        for kw in all_keywords:
+            if kw in title:
+                boost += 0.40
+            if kw in text:
+                boost += 0.15
+
+        raw_score = cand.get("score", 0.0)
+        final_score = raw_score + boost
+
+        scored_candidates.append({
+            **cand,
+            "raw_score": raw_score,
+            "final_score": final_score,
+            "score": min(0.99, round(final_score, 2))
+        })
+
+    scored_candidates.sort(key=lambda c: c["final_score"], reverse=True)
+
+    top_cand = scored_candidates[0] if scored_candidates else None
+    has_keyword_boost = top_cand and (top_cand["final_score"] - top_cand["raw_score"] >= 0.15)
+    has_title_match = len(matching_title_videos) > 0
+    has_strong_vector_match = top_cand and (top_cand["raw_score"] >= 0.35)
+
+    if not has_keyword_boost and not has_title_match and not has_strong_vector_match:
+        yield f"data: {json.dumps({'type': 'token', 'text': 'This topic is not covered in this playlist. Please ask a question related to the topics covered in this course.'})}\n\n"
+        yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        return
+
+    valid_candidates = [
+        c for c in scored_candidates
+        if (c["final_score"] - c["raw_score"] >= 0.15) or (c["raw_score"] >= 0.28)
+    ]
+    top_results = (valid_candidates if valid_candidates else scored_candidates)[:top_k]
+
+    # Format sources and emit immediately!
+    sources = []
+    for idx, r in enumerate(top_results):
+        meta = r["metadata"]
+        t = meta.get("formatted_time") or format_seconds(meta.get("start_time", 0))
+        sources.append({
+            "video_id": meta.get("video_id"),
+            "title": meta.get("video_title"),
+            "timestamp": meta.get("start_time", 0),
+            "formatted_time": t,
+            "chunk_preview": f"Discussion in \"{meta.get('video_title')}\" at {t}.",
+            "original_text": (meta.get("chunk_text") or "")[:200] + "...",
+            "youtube_url": meta.get("youtube_url") or f"https://www.youtube.com/watch?v={meta.get('video_id')}&t={meta.get('start_time', 0)}s",
+            "thumbnail_url": meta.get("thumbnail_url"),
+            "similarity": r["score"],
+        })
+
+    yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+
+    # 5. Build context
+    context_parts = []
+    for idx, r in enumerate(top_results):
+        m = r["metadata"]
+        t = m.get("formatted_time") or format_seconds(m.get("start_time", 0))
+        context_parts.append(f"[{idx + 1}] Video: \"{m.get('video_title')}\" (Timestamp: {t})\n\"{m.get('chunk_text')}\"")
+    context_string = "\n\n".join(context_parts)
+
+    video_catalog = "\n".join(f"- {v.get('title')}" for v in playlist_videos[:15])
+
+    user_message = f"""This playlist covers:
+{video_catalog}
+
+Here are transcript excerpts from the YouTube playlist:
+{context_string}
+
+---
+Question: {trimmed_query}
+
+Provide a comprehensive, clearly explained educational response in English Markdown. Cite relevant video titles and timestamps."""
+
+    STREAM_SYSTEM_PROMPT = """You are an expert AI study assistant for the indexed YouTube course playlist.
+CRITICAL INSTRUCTIONS:
+1. LANGUAGE: ALWAYS answer entirely in clear, natural ENGLISH. Even if the video transcripts are in Hindi, Hinglish, or Devanagari script, NEVER write in Hindi or Devanagari script. All explanations, bullet points, and summaries MUST BE IN ENGLISH.
+2. CITATIONS: Cite the exact video title and timestamp: [Video Title @ timestamp].
+3. FORMATTING: Use clean Markdown with headers, bullet points, bold keywords, and concise explanations."""
+
+    # 6. Stream Groq tokens
+    try:
+        groq_client = Groq(api_key=settings.GROQ_API_KEY)
+        stream = groq_client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=[
+                {"role": "system", "content": STREAM_SYSTEM_PROMPT},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.2,
+            max_tokens=750,
+            stream=True
+        )
+
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content or ""
+            if delta:
+                yield f"data: {json.dumps({'type': 'token', 'text': delta})}\n\n"
+
+        yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+    except Exception as err:
+        logger.error(f"Error in Groq streaming: {err}")
+        yield f"data: {json.dumps({'type': 'error', 'message': str(err)})}\n\n"
+

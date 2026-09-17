@@ -5,7 +5,7 @@
  * Renders markdown-like formatting from the Groq response.
  */
 export default function AnswerView({ answer, isLoading }) {
-  if (isLoading) {
+  if (isLoading && !answer) {
     return (
       <div
         className="clay-card-flat animate-pop-in"
@@ -45,6 +45,7 @@ export default function AnswerView({ answer, isLoading }) {
   }
 
   if (!answer) return null;
+
 
   // Simple markdown-to-HTML rendering
   const renderMarkdown = (text) => {
@@ -96,7 +97,14 @@ export default function AnswerView({ answer, isLoading }) {
           AI Answer
         </span>
         <div className="clay-badge" style={{ marginLeft: 'auto' }}>
-          Powered by Groq
+          {isLoading ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontWeight: 700 }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
+              Streaming live...
+            </span>
+          ) : (
+            'Powered by Groq'
+          )}
         </div>
       </div>
 
@@ -110,8 +118,9 @@ export default function AnswerView({ answer, isLoading }) {
           boxShadow: 'var(--clay-shadow-pressed)',
           lineHeight: 1.7,
         }}
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(answer) }}
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(answer + (isLoading ? ' ▌' : '')) }}
       />
     </div>
   );
 }
+

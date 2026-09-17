@@ -54,3 +54,66 @@ export async function searchPlaylist(query, playlistId, topK = 5) {
     body: JSON.stringify({ query, playlistId, topK }),
   });
 }
+
+/**
+ * POST /api/search/stream
+ * Semantic search with Groq RAG streaming word-by-word via SSE.
+ * 
+ * @param {string} query - Search question
+ * @param {string} playlistId - ID of active playlist
+ * @param {number} topK - Top K results
+ * @param {Function} onToken - Callback for streaming token
+ * @param {Function} onSources - Callback for sources array
+ */
+export async function searchPlaylistStream(query, playlistId, topK = 5, onToken, onSources) {
+  const url = `${API_BASE}/search/stream`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, playlistId, topK }),
+  });
+
+  if (!res.ok) {
+    let msg = `API error: ${res.status}`;
+    try {
+      const err = await res.json();
+      msg = err.detail || err.error || msg;
+    } catch {
+      // not JSON
+    }
+    throw new Error(msg);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.startsWith('data: ')) continue;
+      const jsonStr = trimmed.slice(6);
+      try {
+        const data = JSON.parse(jsonStr);
+        if (data.type === 'sources' && onSources) {
+          onSources(data.sources || []);
+        } else if (data.type === 'token' && onToken) {
+          onToken(data.text || '');
+        } else if (data.type === 'error') {
+          throw new Error(data.message || 'Stream error');
+        }
+      } catch (e) {
+        if (e.message && e.message.includes('Stream error')) throw e;
+        console.error('Error parsing SSE event:', e);
+      }
+    }
+  }
+}
+

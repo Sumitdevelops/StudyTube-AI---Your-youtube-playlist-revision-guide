@@ -8,7 +8,7 @@ import YouTubePlayer from '@/components/YouTubePlayer';
 import SearchBar from '@/components/SearchBar';
 import AnswerView from '@/components/AnswerView';
 import SourceCards from '@/components/SourceCards';
-import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylist } from '@/lib/api';
+import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylist, searchPlaylistStream } from '@/lib/api';
 
 export default function Home() {
   // App state
@@ -122,7 +122,7 @@ export default function Home() {
     }
   };
 
-  // Search handler
+  // Search handler with real-time SSE streaming
   const handleSearch = async (query) => {
     if (!activePlaylistId) return;
     setIsSearching(true);
@@ -131,22 +131,26 @@ export default function Home() {
     setActiveSourceIdx(-1);
 
     try {
-      const data = await searchPlaylist(query, activePlaylistId);
-
-      setAnswer(data.answer || '');
-      setSources(data.sources || []);
-
-      // Auto-seek to the first source ONLY if real sources exist
-      if (data.sources && data.sources.length > 0) {
-        const first = data.sources[0];
-        setSelectedVideoId(first.video_id);
-        setPlayTime(first.timestamp);
-        setActiveSourceIdx(0);
-        setPlayTrigger(prev => prev + 1);
-      } else {
-        // Nothing found: clear sources, DO NOT play random videos!
-        setActiveSourceIdx(-1);
-      }
+      await searchPlaylistStream(
+        query,
+        activePlaylistId,
+        5,
+        (token) => {
+          setAnswer((prev) => prev + token);
+        },
+        (newSources) => {
+          setSources(newSources || []);
+          if (newSources && newSources.length > 0) {
+            const first = newSources[0];
+            setSelectedVideoId(first.video_id);
+            setPlayTime(first.timestamp);
+            setActiveSourceIdx(0);
+            setPlayTrigger((prev) => prev + 1);
+          } else {
+            setActiveSourceIdx(-1);
+          }
+        }
+      );
     } catch (err) {
       setAnswer(`Error: ${err.message}`);
     } finally {

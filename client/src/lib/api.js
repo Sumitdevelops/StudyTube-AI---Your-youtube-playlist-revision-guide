@@ -45,6 +45,18 @@ export async function transcribePlaylist(playlistUrl) {
 }
 
 /**
+ * POST /api/request-playlist
+ * Request a new playlist to be indexed by the admin.
+ */
+export async function requestPlaylist(data) {
+  return apiFetch('/request-playlist', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+
+/**
  * POST /api/search
  * Semantic search with Groq RAG.
  */

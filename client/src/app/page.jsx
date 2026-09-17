@@ -8,6 +8,7 @@ import YouTubePlayer from '@/components/YouTubePlayer';
 import SearchBar from '@/components/SearchBar';
 import AnswerView from '@/components/AnswerView';
 import SourceCards from '@/components/SourceCards';
+import RequestPlaylistModal from '@/components/RequestPlaylistModal';
 import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylist, searchPlaylistStream } from '@/lib/api';
 
 export default function Home() {
@@ -32,6 +33,7 @@ export default function Home() {
   const [sources, setSources] = useState([]);
   const [activeSourceIdx, setActiveSourceIdx] = useState(-1);
   const [isSearching, setIsSearching] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   // Check API health on mount
   useEffect(() => {
@@ -194,7 +196,11 @@ export default function Home() {
 
   return (
     <div className="app-container">
-      <Header vectorCount={vectorCount} isConnected={isConnected} />
+      <Header
+        vectorCount={vectorCount}
+        isConnected={isConnected}
+        onRequestPlaylist={() => setIsRequestModalOpen(true)}
+      />
 
       {/* Playlist Input */}
       <div style={{ marginTop: '24px' }}>
@@ -291,6 +297,13 @@ export default function Home() {
       >
         Built with 🧠 Groq + ⚡ Vector Search + 🎬 YouTube
       </footer>
+
+      {/* Request Playlist Modal */}
+      <RequestPlaylistModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+      />
     </div>
   );
 }
+

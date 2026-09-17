@@ -81,8 +81,8 @@ export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle
               disabled
                 ? 'Index a playlist first...'
                 : playlistTitle
-                ? `Ask ${playlistTitle} AI Tutor anything...`
-                : 'Ask anything about topics in this playlist...'
+                  ? `Ask ${playlistTitle} AI Tutor anything...`
+                  : 'Ask anything about topics in this playlist...'
             }
             value={query}
             onChange={(e) => setQuery(e.target.value)}

@@ -1,6 +1,6 @@
 'use client';
 
-export default function Header({ vectorCount, isConnected }) {
+export default function Header({ vectorCount, isConnected, onRequestPlaylist }) {
   return (
     <header
       style={{
@@ -56,8 +56,23 @@ export default function Header({ vectorCount, isConnected }) {
         </div>
       </div>
 
-      {/* Status Indicators */}
+      {/* Actions & Status Indicators */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button
+          onClick={onRequestPlaylist}
+          className="clay-button clay-button-primary"
+          style={{
+            fontSize: '0.84rem',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontWeight: 700,
+          }}
+        >
+          ✨ Request Playlist
+        </button>
+
         <div className="clay-badge-success">
           <span
             style={{
@@ -82,3 +97,4 @@ export default function Header({ vectorCount, isConnected }) {
     </header>
   );
 }
+

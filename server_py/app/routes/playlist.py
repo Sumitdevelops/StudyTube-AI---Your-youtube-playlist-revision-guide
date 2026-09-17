@@ -7,8 +7,10 @@ from app.services.youtube_service import parse_playlist_id, fetch_playlist_video
 from app.services.transcriber import get_transcript
 from app.services.chunker import chunk_transcript
 from app.services.embedder import embed_batch
+from app.services.telegram_service import send_telegram_notification
 
 router = APIRouter()
+
 logger = logging.getLogger("playlist_routes")
 
 class TranscribeRequest(BaseModel):
@@ -175,3 +177,41 @@ def delete_playlist_endpoint(playlist_id: str):
     except Exception as e:
         logger.error(f"Error in delete_playlist: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+class PlaylistRequestPayload(BaseModel):
+    name: Optional[str] = "Anonymous"
+    email: Optional[str] = "Not provided"
+    playlistUrl: str
+    subject: str
+    note: Optional[str] = ""
+
+@router.post("/request-playlist")
+def request_playlist_endpoint(req: PlaylistRequestPayload):
+    try:
+        url = (req.playlistUrl or "").strip()
+        subject = (req.subject or "").strip()
+        if not url:
+            raise HTTPException(status_code=400, detail="Playlist URL is required.")
+        if not subject:
+            raise HTTPException(status_code=400, detail="Subject / Course name is required.")
+
+        # Send Telegram notification to admin
+        sent = send_telegram_notification(
+            name=req.name or "Anonymous",
+            email=req.email or "Not provided",
+            playlist_url=url,
+            subject=subject,
+            note=req.note or ""
+        )
+
+        return {
+            "success": True,
+            "message": "Playlist request submitted successfully! The admin has been notified.",
+            "telegramNotified": sent
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in request_playlist: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+

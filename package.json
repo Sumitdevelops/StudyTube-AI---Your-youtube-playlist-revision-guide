@@ -1,0 +1,16 @@
+{
+  "name": "yt-study-assistant",
+  "version": "1.0.0",
+  "description": "YouTube Playlist Study Assistant with RAG - Ask questions, get AI answers with exact video timestamps",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": ".venv\\Scripts\\python.exe -m uvicorn app.main:app --app-dir server_py --host 0.0.0.0 --port 5000 --reload",
+    "dev:client": "cd client && npm run dev",
+    "install:all": "npm install && cd client && npm install",
+    "build": "cd client && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

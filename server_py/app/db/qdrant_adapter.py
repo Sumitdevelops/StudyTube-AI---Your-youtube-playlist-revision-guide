@@ -131,7 +131,7 @@ class QdrantAdapter:
         while True:
             scroll_res = self.client.scroll(
                 collection_name=self.collection_name,
-                limit=100,
+                limit=1000,
                 offset=offset,
                 with_payload=["playlist_id", "playlist_title", "thumbnail_url"]
             )
@@ -166,7 +166,7 @@ class QdrantAdapter:
         while True:
             scroll_res = self.client.scroll(
                 collection_name=self.collection_name,
-                limit=100,
+                limit=1000,
                 offset=offset,
                 with_payload=["video_id", "video_title", "thumbnail_url", "video_duration", "playlist_id"],
                 scroll_filter=q_filter

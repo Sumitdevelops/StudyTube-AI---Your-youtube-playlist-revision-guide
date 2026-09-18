@@ -87,7 +87,8 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
             "thumbnail_url": video.get("thumbnail_url", ""),
             "duration": video.get("duration", 0),
             "playlist_id": playlist["playlist_id"],
-            "playlist_title": playlist["title"]
+            "playlist_title": playlist["title"],
+            "channel_title": playlist.get("channel_title", "")
         })
 
         if not chunks:
@@ -120,6 +121,7 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
     print("\n" + "=" * 65)
     print(f"🎉 INDEXING COMPLETE!")
     print(f"📚 Playlist: {playlist['title']}")
+    print(f"📺 Channel:  {playlist.get('channel_title', 'Unknown')}")
     print(f"📹 Videos Indexed: {successful_videos}/{len(videos)}")
     print(f"📦 Total New Chunks in Qdrant: {total_chunks_indexed}")
     print(f"🌐 Database Vector Count: {vector_store.get_count()} vectors")

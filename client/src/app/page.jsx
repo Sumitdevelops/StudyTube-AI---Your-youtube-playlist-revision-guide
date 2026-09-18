@@ -166,12 +166,14 @@ export default function Home() {
     setSources([]);
     setActiveSourceIdx(-1);
 
+    let fullAnswerText = '';
     try {
       await searchPlaylistStream(
         query,
         activePlaylistId,
         5,
         (token) => {
+          fullAnswerText += token;
           setAnswer((prev) => prev + token);
         },
         (newSources) => {
@@ -187,6 +189,17 @@ export default function Home() {
           }
         }
       );
+
+      const ansLower = fullAnswerText.toLowerCase();
+      if (
+        ansLower.includes('not covered') ||
+        ansLower.includes('not appear to be a standard technical term') ||
+        ansLower.includes('transcription error') ||
+        ansLower.includes('request this playlist')
+      ) {
+        setSources([]);
+        setActiveSourceIdx(-1);
+      }
     } catch (err) {
       setAnswer(`Error: ${err.message}`);
     } finally {
@@ -205,12 +218,14 @@ export default function Home() {
     setLastQuery(query);
     setActiveSourceIdx(-1);
 
+    let fullAnswerText = '';
     try {
       await searchPlaylistStream(
         query,
         playlistId,
         5,
         (token) => {
+          fullAnswerText += token;
           setAnswer((prev) => prev + token);
         },
         (newSources) => {
@@ -224,6 +239,17 @@ export default function Home() {
           }
         }
       );
+
+      const ansLower = fullAnswerText.toLowerCase();
+      if (
+        ansLower.includes('not covered') ||
+        ansLower.includes('not appear to be a standard technical term') ||
+        ansLower.includes('transcription error') ||
+        ansLower.includes('request this playlist')
+      ) {
+        setSources([]);
+        setActiveSourceIdx(-1);
+      }
     } catch (err) {
       setAnswer(`Error: ${err.message}`);
     } finally {

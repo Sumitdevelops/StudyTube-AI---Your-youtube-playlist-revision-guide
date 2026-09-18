@@ -105,7 +105,7 @@ def search_rag(query: str, playlist_id: str, top_k: int = 5) -> Dict[str, Any]:
     # Check if any query keyword matches video titles in the playlist
     matching_title_videos = [
         v for v in playlist_videos
-        if any(kw in v.get("title", "").lower() for kw in all_keywords)
+        if any(re.search(r'\b' + re.escape(kw) + r'\b', v.get("title", "").lower()) for kw in all_keywords)
     ]
     logger.info(f"Found {len(matching_title_videos)} videos matching title keywords")
 
@@ -132,10 +132,10 @@ def search_rag(query: str, playlist_id: str, top_k: int = 5) -> Dict[str, Any]:
 
         boost = 0.0
         for kw in all_keywords:
-            if kw in title:
+            if re.search(r'\b' + re.escape(kw) + r'\b', title):
                 boost += 0.40  # Boost for video title match
-            if kw in text:
-                boost += 0.15  # Boost for transcript match
+            elif len(kw) >= 4 and re.search(r'\b' + re.escape(kw) + r'\b', text):
+                boost += 0.15  # Boost for transcript match (words >= 4 chars only)
 
         raw_score = cand.get("score", 0.0)
         final_score = raw_score + boost
@@ -160,15 +160,17 @@ def search_rag(query: str, playlist_id: str, top_k: int = 5) -> Dict[str, Any]:
                 break
 
     # STRICT RELEVANCE GATE:
-    # If the query is unrelated/conversational and NO candidate matches title/keywords nor has high vector score:
-    # Return NOTHING!
+    # Query must match video titles, or have strong vector match, or have text match with sufficient vector score
     top_cand = scored_candidates[0] if scored_candidates else None
-    has_keyword_boost = top_cand and (top_cand["final_score"] - top_cand["raw_score"] >= 0.15)
     has_title_match = len(matching_title_videos) > 0
-    has_strong_vector_match = top_cand and (top_cand["raw_score"] >= 0.35)
+    has_top_title_match = top_cand and any(re.search(r'\b' + re.escape(kw) + r'\b', top_cand.get("metadata", {}).get("video_title", "").lower()) for kw in all_keywords)
+    has_strong_vector_match = top_cand and (top_cand["raw_score"] >= 0.42)
+    has_valid_text_match = top_cand and has_title_match and (top_cand["raw_score"] >= 0.32) and (top_cand["final_score"] - top_cand["raw_score"] >= 0.15)
 
-    if not has_keyword_boost and not has_title_match and not has_strong_vector_match:
-        logger.info(f"🛑 No relevant topic found for '{trimmed_query}' in '{playlist_title}'. (raw: {top_cand['raw_score']:.3f}, matching titles: 0)")
+    is_covered = bool(has_title_match or has_top_title_match or has_strong_vector_match or has_valid_text_match)
+
+    if not is_covered:
+        logger.info(f"🛑 No relevant topic found for '{trimmed_query}' in '{playlist_title}'. (raw: {top_cand['raw_score'] if top_cand else 0:.3f}, matching titles: {len(matching_title_videos)})")
         return {
             "answer": f"This topic is not covered in '{playlist_title}'. Please ask a question related to this course syllabus.\n\n💡 **Want this course or topic added?** Click the **Request This Playlist** button below to notify the admin!",
             "sources": []
@@ -332,7 +334,7 @@ def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator
     all_keywords = list(dict.fromkeys(expanded_keywords))
     matching_title_videos = [
         v for v in playlist_videos
-        if any(kw in v.get("title", "").lower() for kw in all_keywords)
+        if any(re.search(r'\b' + re.escape(kw) + r'\b', v.get("title", "").lower()) for kw in all_keywords)
     ]
 
     # 3. Dense vector search via Qdrant
@@ -358,9 +360,9 @@ def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator
 
         boost = 0.0
         for kw in all_keywords:
-            if kw in title:
+            if re.search(r'\b' + re.escape(kw) + r'\b', title):
                 boost += 0.40
-            if kw in text:
+            elif len(kw) >= 4 and re.search(r'\b' + re.escape(kw) + r'\b', text):
                 boost += 0.15
 
         raw_score = cand.get("score", 0.0)
@@ -385,12 +387,16 @@ def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator
                 playlist_title = pl.get("playlist_title", "this course")
                 break
 
+    # STRICT RELEVANCE GATE:
     top_cand = scored_candidates[0] if scored_candidates else None
-    has_keyword_boost = top_cand and (top_cand["final_score"] - top_cand["raw_score"] >= 0.15)
     has_title_match = len(matching_title_videos) > 0
-    has_strong_vector_match = top_cand and (top_cand["raw_score"] >= 0.35)
+    has_top_title_match = top_cand and any(re.search(r'\b' + re.escape(kw) + r'\b', top_cand.get("metadata", {}).get("video_title", "").lower()) for kw in all_keywords)
+    has_strong_vector_match = top_cand and (top_cand["raw_score"] >= 0.42)
+    has_valid_text_match = top_cand and has_title_match and (top_cand["raw_score"] >= 0.32) and (top_cand["final_score"] - top_cand["raw_score"] >= 0.15)
 
-    if not has_keyword_boost and not has_title_match and not has_strong_vector_match:
+    is_covered = bool(has_title_match or has_top_title_match or has_strong_vector_match or has_valid_text_match)
+
+    if not is_covered:
         not_covered_text = f"This topic is not covered in \"{playlist_title}\". Please ask a question related to this course syllabus.\n\n💡 **Want this course or topic added?** Click the **Request This Playlist** button below to notify the admin!"
         yield f"data: {json.dumps({'type': 'token', 'text': not_covered_text})}\n\n"
         yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
@@ -403,7 +409,7 @@ def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator
     ]
     top_results = (valid_candidates if valid_candidates else scored_candidates)[:top_k]
 
-    # Format sources and emit immediately!
+    # Format sources (will be emitted once confirmed not rejected)
     sources = []
     for idx, r in enumerate(top_results):
         meta = r["metadata"]
@@ -419,8 +425,6 @@ def search_rag_stream(query: str, playlist_id: str, top_k: int = 5) -> Generator
             "thumbnail_url": meta.get("thumbnail_url"),
             "similarity": r["score"],
         })
-
-    yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
 
     # 5. Build context
     context_parts = []
@@ -467,10 +471,28 @@ CRITICAL INSTRUCTIONS:
             stream=True
         )
 
+        accumulated_text = []
         for chunk in stream:
             delta = chunk.choices[0].delta.content or ""
             if delta:
+                accumulated_text.append(delta)
                 yield f"data: {json.dumps({'type': 'token', 'text': delta})}\n\n"
+
+        full_ans = "".join(accumulated_text).lower()
+        is_rejected = (
+            "not covered" in full_ans or
+            "not discussed" in full_ans or
+            "cannot answer this question" in full_ans or
+            "does not appear to be a standard technical term" in full_ans or
+            "transcription error" in full_ans or
+            "request this playlist" in full_ans or
+            "click the request" in full_ans
+        )
+
+        if is_rejected:
+            yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+        else:
+            yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
 
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 

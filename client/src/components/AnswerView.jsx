@@ -1,8 +1,103 @@
 'use client';
 
+import { useMemo } from 'react';
+import { Marked } from 'marked';
+import katex from 'katex';
+
+// Pre-configure marked instance with GitHub Flavored Markdown and breaks
+const markedInstance = new Marked({
+  gfm: true,
+  breaks: true,
+});
+
+/**
+ * Robust markdown + KaTeX math renderer:
+ * 1. Normalizes broken LLM bullet points and asterisks.
+ * 2. Pre-extracts LaTeX math formulas ($$...$$ and $...$) so markdown parsers
+ *    won't mangle LaTeX characters (_, *, \).
+ * 3. Renders math via KaTeX with throwOnError: false.
+ * 4. Compiles markdown to HTML via Marked.
+ * 5. Reinserts rendered KaTeX math and styles inline citations cleanly.
+ */
+function renderEnhancedMarkdown(rawText) {
+  if (!rawText) return '';
+
+  let text = rawText;
+
+  // 1. Normalize unicode bullets and broken bullet combinations at line starts
+  // e.g. "• ", "● ", "* •", "•* " -> "- "
+  text = text.replace(/^[\s]*[•●○][\s]*/gm, '- ');
+  text = text.replace(/^[\s]*\*\s*[•●○][\s]*/gm, '- ');
+
+  // 2. Normalize single asterisk bullets or malformed source tags
+  // e.g. "* *Source:*" or "*Source:*" -> "**Source:** "
+  text = text.replace(/\*\s*\*Source:\*\s*/gi, '**Source:** ');
+  text = text.replace(/(?<!\*)\*Source:\*(?!\*)/gi, '**Source:** ');
+
+  // 3. Extract and compile LaTeX math expressions to placeholders
+  const mathPlaceholders = [];
+
+  // Match display math $$...$$
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+    try {
+      const rendered = katex.renderToString(formula.trim(), {
+        displayMode: true,
+        throwOnError: false,
+      });
+      const placeholder = `KATEXBLOCKPLACEHOLDER${mathPlaceholders.length}XYZ`;
+      mathPlaceholders.push({ placeholder, html: rendered });
+      return `\n\n${placeholder}\n\n`;
+    } catch (e) {
+      return match;
+    }
+  });
+
+  // Match inline math $...$
+  text = text.replace(/\$([^\$\n\r]+?)\$/g, (match, formula) => {
+    const trimmed = formula.trim();
+    if (!trimmed) return match;
+    try {
+      const rendered = katex.renderToString(trimmed, {
+        displayMode: false,
+        throwOnError: false,
+      });
+      const placeholder = `KATEXINLINEPLACEHOLDER${mathPlaceholders.length}XYZ`;
+      mathPlaceholders.push({ placeholder, html: rendered });
+      return placeholder;
+    } catch (e) {
+      return match;
+    }
+  });
+
+  // 4. Compile markdown to HTML
+  let html = '';
+  try {
+    html = markedInstance.parse(text);
+  } catch (err) {
+    html = text.replace(/\n/g, '<br/>');
+  }
+
+  // 5. Restore math placeholders
+  for (const item of mathPlaceholders) {
+    html = html.replace(new RegExp(item.placeholder, 'g'), item.html);
+  }
+
+  // 6. Transform citations [Video Title @ mm:ss] into interactive styled badges
+  html = html.replace(
+    /\[([^\]@\n]+?)\s*@\s*(\d{1,2}:\d{2}(?::\d{2})?)\]/g,
+    (match, title, ts) => {
+      const cleanTitle = title.trim();
+      const escapedTitle = cleanTitle.replace(/"/g, '&quot;');
+      return `<span class="inline-citation-badge" data-citation-title="${escapedTitle}" data-citation-ts="${ts}" title="Jump to ${cleanTitle} @ ${ts}"><span class="citation-icon">▶</span> <span class="citation-title">${cleanTitle}</span> <span class="citation-ts">${ts}</span></span>`;
+    }
+  );
+
+  return html;
+}
+
 /**
  * AnswerView - Displays the AI-generated answer in a puffy claymorphism card.
- * Renders markdown-like formatting from the Groq response.
+ * Renders full markdown and KaTeX math formulas with interactive video citations.
  */
 export default function AnswerView({
   answer,
@@ -11,6 +106,8 @@ export default function AnswerView({
   channelTitle = '',
   onRequestPlaylist,
   userQuery = '',
+  sources = [],
+  onJumpToCitation,
 }) {
   if (isLoading && !answer) {
     return (
@@ -60,28 +157,41 @@ export default function AnswerView({
       answer.toLowerCase().includes('request the admin') ||
       answer.toLowerCase().includes('request this playlist'));
 
-  // Simple markdown-to-HTML rendering
-  const renderMarkdown = (text) => {
-    let html = text
-      // Bold
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      // Inline code
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      // Headers
-      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-      // Bullet points
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
-      // Line breaks
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br/>');
+  // Memoize markdown rendering for smooth performance during streaming and re-renders
+  const renderedHtml = useMemo(() => {
+    return renderEnhancedMarkdown(answer + (isLoading ? ' ▌' : ''));
+  }, [answer, isLoading]);
 
-    // Wrap loose <li> in <ul>
-    html = html.replace(/((?:<li>.*?<\/li>\s*)+)/g, '<ul>$1</ul>');
+  // Handle click on inline citation badge to jump player
+  const handleContentClick = (e) => {
+    const badge = e.target.closest('.inline-citation-badge');
+    if (!badge || !onJumpToCitation) return;
 
-    return `<p>${html}</p>`;
+    const tsStr = badge.dataset.citationTs;
+    const titleStr = badge.dataset.citationTitle;
+    if (!tsStr) return;
+
+    // Parse mm:ss or hh:mm:ss to seconds
+    const parts = tsStr.split(':').map(Number);
+    let seconds = 0;
+    if (parts.length === 2) {
+      seconds = parts[0] * 60 + parts[1];
+    } else if (parts.length === 3) {
+      seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+
+    // Match video in sources
+    let matchedVideoId = null;
+    if (sources && sources.length > 0) {
+      const match = sources.find(
+        (s) =>
+          (titleStr && s.title && s.title.toLowerCase().includes(titleStr.toLowerCase().slice(0, 15))) ||
+          Math.abs((s.timestamp || 0) - seconds) <= 2
+      );
+      matchedVideoId = match ? match.video_id : sources[0].video_id;
+    }
+
+    onJumpToCitation(matchedVideoId, seconds);
   };
 
   return (
@@ -111,7 +221,8 @@ export default function AnswerView({
       {/* Answer Content */}
       <div
         className="markdown-content answer-content-box"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(answer + (isLoading ? ' ▌' : '')) }}
+        onClick={handleContentClick}
+        dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
 
       {/* Direct In-Answer CTA when topic is not in playlist */}

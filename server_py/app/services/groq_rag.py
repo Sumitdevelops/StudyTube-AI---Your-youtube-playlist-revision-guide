@@ -25,7 +25,14 @@ And under ===ENGLISH_SOURCES=== write NONE. Do NOT cite any irrelevant videos.
 
 3. CITATIONS: If relevant info IS present, cite the exact video title and timestamp: [Video Title @ timestamp].
 
-4. FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
+4. MATHEMATICAL & TECHNICAL FORMULAS:
+- Format all mathematical expressions, variables, Greek symbols, and formal definitions using standard LaTeX notation:
+  - Inline math: wrap in single dollar signs, e.g. $Q$, $\\Sigma$, $\\delta$, $q_0$, $F$, or $M = (Q, \\Sigma, \\delta, q_0, F)$.
+  - Block/multiline equations: wrap in double dollar signs on separate lines, e.g.:
+    $$\\delta: Q \\times \\Sigma \\rightarrow Q$$
+- Use standard markdown hyphens ("- ") for lists. Never output raw Unicode bullets ("•") or redundant asterisks like "* •" or "* *Source:*".
+
+5. FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:
 
 <Your thorough educational explanation in English Markdown, or the not-covered message>
 
@@ -453,7 +460,13 @@ CRITICAL INSTRUCTIONS:
 2. RELEVANCE: If the question is not covered in this course, state clearly: "This topic is not covered in '{playlist_title}'. Please ask a question related to this course syllabus. 💡 Want this course or topic added? Click the Request button below to notify the admin!"
 3. LANGUAGE: ALWAYS answer entirely in clear, natural ENGLISH. Even if the video transcripts are in Hindi, Hinglish, or Devanagari script, NEVER write in Hindi or Devanagari script. All explanations, bullet points, and summaries MUST BE IN ENGLISH.
 4. CITATIONS: Cite the exact video title and timestamp: [Video Title @ timestamp].
-5. FORMATTING: Use clean Markdown with headers, bullet points, bold keywords, and concise explanations."""
+5. MATHEMATICAL & TECHNICAL FORMULAS:
+- Format all mathematical expressions, variables, Greek symbols, and formal definitions using clean standard LaTeX notation:
+  - Inline math: wrap in single dollar signs, e.g. $Q$, $\\Sigma$, $\\delta$, $q_0$, $F$, $M = (Q, \\Sigma, \\delta, q_0, F)$.
+  - Display equations: wrap in double dollar signs on separate lines, e.g.:
+    $$\\delta: Q \\times \\Sigma \\rightarrow Q$$
+- Use standard markdown hyphens ("- ") for list items. Never output raw Unicode bullets ("•") or combined asterisks like "* •" or "* *Source:*".
+6. FORMATTING: Use clean Markdown with headers, standard bullet points ("- "), bold keywords, and concise explanations."""
 
 
     # 6. Stream Groq tokens

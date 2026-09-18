@@ -419,6 +419,110 @@ body {
   font-weight: 800;
 }
 
+.markdown-content blockquote {
+  border-left: 4px solid var(--accent-primary);
+  padding: 8px 16px;
+  margin: 12px 0;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 0.92rem;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 8px 12px;
+  border: 1px solid rgba(150, 120, 200, 0.2);
+  text-align: left;
+}
+
+.markdown-content th {
+  background: var(--bg-hover);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* KaTeX Math Styling */
+.markdown-content .katex {
+  font-size: 1.05em;
+  color: var(--text-primary);
+}
+
+.markdown-content .katex-display {
+  margin: 14px 0;
+  padding: 12px 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--clay-shadow-pressed);
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+}
+
+/* Interactive Inline Citation Badges */
+.inline-citation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 4px;
+  padding: 3px 10px;
+  background: var(--accent-primary-surface);
+  color: var(--text-on-accent);
+  border-radius: var(--radius-full);
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow: var(--clay-shadow-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  vertical-align: middle;
+}
+
+.inline-citation-badge:hover {
+  transform: translateY(-1.5px);
+  background: #ede0ff;
+  box-shadow: var(--clay-shadow);
+  color: #4a287a;
+}
+
+.inline-citation-badge:active {
+  transform: translateY(0);
+  box-shadow: var(--clay-shadow-pressed);
+}
+
+.inline-citation-badge .citation-icon {
+  font-size: 0.7rem;
+  color: var(--accent-primary);
+  transition: transform 0.2s ease;
+}
+
+.inline-citation-badge:hover .citation-icon {
+  transform: scale(1.15);
+}
+
+.inline-citation-badge .citation-title {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-citation-badge .citation-ts {
+  background: rgba(99, 102, 241, 0.15);
+  color: #5b21b6;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 /* ===== Tooltip ===== */
 
 .clay-tooltip {

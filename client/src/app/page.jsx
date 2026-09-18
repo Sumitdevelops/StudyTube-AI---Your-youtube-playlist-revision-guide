@@ -429,6 +429,18 @@ export default function Home() {
             channelTitle={activeChannelTitle}
             onRequestPlaylist={handleOpenRequestModal}
             userQuery={lastQuery}
+            sources={sources}
+            onJumpToCitation={(videoId, timestamp) => {
+              if (videoId) setSelectedVideoId(videoId);
+              setPlayTime(timestamp);
+              setPlayTrigger((prev) => prev + 1);
+              setTimeout(() => {
+                const el = document.getElementById('player-section');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }, 50);
+            }}
           />
 
 

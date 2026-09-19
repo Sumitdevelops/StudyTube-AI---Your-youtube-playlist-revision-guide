@@ -23,6 +23,20 @@ export async function getHealth() {
   return apiFetch('/health');
 }
 
+/**
+ * Background browser heartbeat: pings /api/health every 8 minutes
+ * while the tab is open to prevent Render's 15-minute idle sleep.
+ */
+let _heartbeatStarted = false;
+export function initKeepAliveHeartbeat() {
+  if (typeof window === 'undefined' || _heartbeatStarted) return;
+  _heartbeatStarted = true;
+  const HEARTBEAT_INTERVAL_MS = 8 * 60 * 1000; // 8 minutes
+  setInterval(() => {
+    fetch(`${API_BASE}/health`, { method: 'GET', keepalive: true }).catch(() => {});
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
 /** GET /api/playlists with optional search, page, and limit */
 export async function getPlaylists(params = {}) {
   const query = new URLSearchParams();

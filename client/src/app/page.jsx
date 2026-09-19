@@ -11,7 +11,7 @@ import SourceCards from '@/components/SourceCards';
 import RequestPlaylistModal from '@/components/RequestPlaylistModal';
 import AvailablePlaylistsModal from '@/components/AvailablePlaylistsModal';
 import HeroBanner from '@/components/HeroBanner';
-import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylist, searchPlaylistStream } from '@/lib/api';
+import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylist, searchPlaylistStream, initKeepAliveHeartbeat } from '@/lib/api';
 
 export default function Home() {
   // App state
@@ -121,7 +121,8 @@ export default function Home() {
       setIsColdStarting(true);
     }, 2500);
 
-    // 3. Network revalidation
+    // 3. Network revalidation & keep-alive heartbeat
+    initKeepAliveHeartbeat();
     checkHealth();
     loadPlaylists(initialTargetPlaylistId).finally(() => {
       clearTimeout(coldTimer);

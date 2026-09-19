@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getPlaylists } from '@/lib/api';
+import { getPlaylists, initKeepAliveHeartbeat } from '@/lib/api';
 import RequestPlaylistModal from '@/components/RequestPlaylistModal';
 
 export default function PlaylistsPage() {
@@ -98,6 +98,7 @@ export default function PlaylistsPage() {
       setIsColdStarting(true);
     }, 2500);
 
+    initKeepAliveHeartbeat();
     fetchPlaylists('', 1, false).finally(() => {
       clearTimeout(coldTimer);
       setIsColdStarting(false);

@@ -1,0 +1,27 @@
+name: Keep Backend Alive (Anti-Sleep Ping)
+
+on:
+  schedule:
+    # Runs every 10 minutes to prevent Render's 15-minute inactivity spin-down
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual test trigger from GitHub UI
+
+jobs:
+  ping-backend:
+    name: Ping Render Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Backend Health Endpoint
+        run: |
+          echo "Pinging StudyTube Render backend to prevent cold starts..."
+          URL="https://studytube-ai-your-youtube-playlist.onrender.com/api/health"
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}\nTIME_TOTAL:%{time_total}s" --max-time 60 "$URL")
+          echo "$RESPONSE"
+
+          if echo "$RESPONSE" | grep -q "HTTP_STATUS:200"; then
+            echo "✅ Backend is awake, warm, and healthy!"
+          else
+            echo "⚠️ Warning: Backend ping did not return 200 OK."
+          fi

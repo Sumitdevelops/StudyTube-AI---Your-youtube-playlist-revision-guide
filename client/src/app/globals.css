@@ -1,51 +1,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* ===== Stitch Design System - Porcelain & Ceramic Palette ===== */
+  /* ===== Warm Cream & Off-White Eye-Friendly Palette ===== */
   --font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Canvas & Backgrounds */
-  --bg-main: #f8fafc;
-  --bg-surface: #f1f5f9;
-  --bg-card: #ffffff;
-  --bg-input: #f8fafc;
-  --bg-hover: #f1f5f9;
+  /* Canvas & Backgrounds (Warm Sand / Cozy Cream Canvas) */
+  --bg-main: #f0eae1;
+  --bg-surface: #e7dfd3;
+  --bg-card: #fdfbf7;
+  --bg-input: #e9e1d5;
+  --bg-hover: #e5ddd0;
 
-  /* Borders & Dividers */
-  --border-subtle: #e2e8f0;
-  --border-muted: #cbd5e1;
+  /* Borders & Dividers (Warm Muted Tones) */
+  --border-subtle: #ded5c7;
+  --border-muted: #cdbfad;
   --border-focus: #6366f1;
 
   /* Accent Colors */
-  --accent-primary: #6366f1;
-  --accent-primary-hover: #4f46e5;
-  --accent-primary-surface: rgba(99, 102, 241, 0.08);
-  --accent-primary-border: rgba(99, 102, 241, 0.2);
+  --accent-primary: #5558e6;
+  --accent-primary-hover: #4346d8;
+  --accent-primary-surface: rgba(85, 88, 230, 0.1);
+  --accent-primary-border: rgba(85, 88, 230, 0.25);
 
-  --accent-secondary: #8b5cf6;
-  --accent-secondary-hover: #7c3aed;
-  --accent-secondary-surface: rgba(139, 92, 246, 0.08);
+  --accent-secondary: #7c4deb;
+  --accent-secondary-hover: #6c3cd9;
+  --accent-secondary-surface: rgba(124, 77, 235, 0.1);
 
-  --accent-success: #10b981;
-  --accent-success-surface: #ecfdf5;
-  --accent-success-border: #a7f3d0;
-  --accent-warning: #f59e0b;
+  --accent-success: #0d9468;
+  --accent-success-surface: #e4f7f0;
+  --accent-success-border: #99e6cc;
+  --accent-warning: #d97706;
   --accent-info: #0284c7;
   --accent-info-surface: #e0f2fe;
 
-  /* Text Typography */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  /* Typography (Rich Warm Espresso / Charcoal) */
+  --text-primary: #241c15;
+  --text-secondary: #52463c;
+  --text-muted: #85776a;
   --text-on-accent: #ffffff;
 
-  /* Elevation Shadows (Level 0, 1, 2, Deep) */
-  --clay-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
-  --clay-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05), 0 1px 3px -1px rgba(15, 23, 42, 0.03);
-  --clay-shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
-  --clay-shadow-pressed: inset 0 2px 4px rgba(15, 23, 42, 0.06);
-  --clay-shadow-accent: 0 4px 14px rgba(99, 102, 241, 0.25);
-  --shadow-glow: 0 0 0 2px #6366f1, 0 8px 20px rgba(99, 102, 241, 0.18);
+  /* Elevation Shadows (Soft Warm Cast) */
+  --clay-shadow-sm: 0 1px 3px rgba(60, 45, 30, 0.06), 0 1px 2px rgba(60, 45, 30, 0.04);
+  --clay-shadow: 0 2px 8px -2px rgba(60, 45, 30, 0.08), 0 1px 4px -1px rgba(60, 45, 30, 0.05);
+  --clay-shadow-lg: 0 12px 28px -5px rgba(60, 45, 30, 0.11), 0 4px 10px -2px rgba(60, 45, 30, 0.05);
+  --clay-shadow-pressed: inset 0 2px 4px rgba(60, 45, 30, 0.08);
+  --clay-shadow-accent: 0 4px 14px rgba(85, 88, 230, 0.28);
+  --shadow-glow: 0 0 0 2px #5558e6, 0 8px 20px rgba(85, 88, 230, 0.2);
 
   /* Radius Tokens */
   --radius-sm: 10px;

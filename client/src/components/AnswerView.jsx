@@ -106,6 +106,12 @@ export default function AnswerView({
   const [copied, setCopied] = useState(false);
   const [isHelpful, setIsHelpful] = useState(null);
 
+  // Compute renderedHtml unconditionally to strictly follow React Rules of Hooks
+  const renderedHtml = useMemo(() => {
+    if (!answer) return '';
+    return renderEnhancedMarkdown(answer + (isLoading ? ' ▌' : ''));
+  }, [answer, isLoading]);
+
   const handleCopy = () => {
     if (!answer) return;
     navigator.clipboard.writeText(answer).then(() => {
@@ -124,6 +130,35 @@ export default function AnswerView({
     a.download = `anki_${(userQuery || 'concept').slice(0, 20).replace(/\s+/g, '_')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleContentClick = (e) => {
+    const badge = e.target.closest('.inline-citation-badge');
+    if (!badge || !onJumpToCitation) return;
+
+    const tsStr = badge.dataset.citationTs;
+    const titleStr = badge.dataset.citationTitle;
+    if (!tsStr) return;
+
+    const parts = tsStr.split(':').map(Number);
+    let seconds = 0;
+    if (parts.length === 2) {
+      seconds = parts[0] * 60 + parts[1];
+    } else if (parts.length === 3) {
+      seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+
+    let matchedVideoId = null;
+    if (sources && sources.length > 0) {
+      const match = sources.find(
+        (s) =>
+          (titleStr && s.title && s.title.toLowerCase().includes(titleStr.toLowerCase().slice(0, 15))) ||
+          Math.abs((s.timestamp || 0) - seconds) <= 2
+      );
+      matchedVideoId = match ? match.video_id : sources[0].video_id;
+    }
+
+    onJumpToCitation(matchedVideoId, seconds);
   };
 
   if (isLoading && !answer) {
@@ -194,40 +229,6 @@ export default function AnswerView({
       answer.toLowerCase().includes('not discussed') ||
       answer.toLowerCase().includes('request the admin') ||
       answer.toLowerCase().includes('request this playlist'));
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const renderedHtml = useMemo(() => {
-    return renderEnhancedMarkdown(answer + (isLoading ? ' ▌' : ''));
-  }, [answer, isLoading]);
-
-  const handleContentClick = (e) => {
-    const badge = e.target.closest('.inline-citation-badge');
-    if (!badge || !onJumpToCitation) return;
-
-    const tsStr = badge.dataset.citationTs;
-    const titleStr = badge.dataset.citationTitle;
-    if (!tsStr) return;
-
-    const parts = tsStr.split(':').map(Number);
-    let seconds = 0;
-    if (parts.length === 2) {
-      seconds = parts[0] * 60 + parts[1];
-    } else if (parts.length === 3) {
-      seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
-
-    let matchedVideoId = null;
-    if (sources && sources.length > 0) {
-      const match = sources.find(
-        (s) =>
-          (titleStr && s.title && s.title.toLowerCase().includes(titleStr.toLowerCase().slice(0, 15))) ||
-          Math.abs((s.timestamp || 0) - seconds) <= 2
-      );
-      matchedVideoId = match ? match.video_id : sources[0].video_id;
-    }
-
-    onJumpToCitation(matchedVideoId, seconds);
-  };
 
   return (
     <div className="stitch-card answer-container animate-fade-in">

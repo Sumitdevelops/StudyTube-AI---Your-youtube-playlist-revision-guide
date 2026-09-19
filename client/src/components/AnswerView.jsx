@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Marked } from 'marked';
 import katex from 'katex';
 
@@ -24,13 +24,11 @@ function renderEnhancedMarkdown(rawText) {
 
   let text = rawText;
 
-  // 1. Normalize unicode bullets and broken bullet combinations at line starts
-  // e.g. "• ", "● ", "* •", "•* " -> "- "
+  // 1. Normalize unicode bullets
   text = text.replace(/^[\s]*[•●○][\s]*/gm, '- ');
   text = text.replace(/^[\s]*\*\s*[•●○][\s]*/gm, '- ');
 
-  // 2. Normalize single asterisk bullets or malformed source tags
-  // e.g. "* *Source:*" or "*Source:*" -> "**Source:** "
+  // 2. Normalize source tags
   text = text.replace(/\*\s*\*Source:\*\s*/gi, '**Source:** ');
   text = text.replace(/(?<!\*)\*Source:\*(?!\*)/gi, '**Source:** ');
 
@@ -95,10 +93,6 @@ function renderEnhancedMarkdown(rawText) {
   return html;
 }
 
-/**
- * AnswerView - Displays the AI-generated answer in a puffy claymorphism card.
- * Renders full markdown and KaTeX math formulas with interactive video citations.
- */
 export default function AnswerView({
   answer,
   isLoading,
@@ -109,41 +103,85 @@ export default function AnswerView({
   sources = [],
   onJumpToCitation,
 }) {
+  const [copied, setCopied] = useState(false);
+  const [isHelpful, setIsHelpful] = useState(null);
+
+  const handleCopy = () => {
+    if (!answer) return;
+    navigator.clipboard.writeText(answer).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleExportAnki = () => {
+    if (!answer) return;
+    const ankiText = `# Flashcard: ${userQuery || 'Concept'}\n\nQ: ${userQuery || 'Exam Question'}\nA: ${answer.slice(0, 500)}...\n\nSource: StudyTube AI`;
+    const blob = new Blob([ankiText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `anki_${(userQuery || 'concept').slice(0, 20).replace(/\s+/g, '_')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading && !answer) {
     return (
-      <div
-        className="clay-card-flat animate-pop-in"
-        style={{ padding: '28px', marginBottom: '20px' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--accent-primary-surface)',
-              boxShadow: 'var(--clay-shadow-sm)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '18px',
-              animation: 'clay-bounce 1s ease-in-out infinite',
-            }}
-          >
-            🧠
-          </div>
-          <span style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            {playlistTitle ? `${playlistTitle}${channelTitle ? ` (${channelTitle})` : ''} AI is thinking...` : 'AI is thinking...'}
+      <div className="stitch-card answer-loading-card animate-pop-in">
+        <div className="loading-header">
+          <div className="ai-icon-circle">🧠</div>
+          <span className="loading-title">
+            Synthesizing grounded explanation from lecture transcripts...
           </span>
         </div>
 
-        {/* Skeleton loading lines */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div className="skeleton" style={{ height: '16px', width: '90%' }} />
-          <div className="skeleton" style={{ height: '16px', width: '75%' }} />
+        <div className="skeleton-lines">
+          <div className="skeleton" style={{ height: '16px', width: '92%' }} />
+          <div className="skeleton" style={{ height: '16px', width: '78%' }} />
           <div className="skeleton" style={{ height: '16px', width: '85%' }} />
-          <div className="skeleton" style={{ height: '16px', width: '60%' }} />
+          <div className="skeleton" style={{ height: '16px', width: '64%' }} />
         </div>
+
+        <style jsx>{`
+          .answer-loading-card {
+            padding: 22px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          }
+          .loading-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          }
+          .ai-icon-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--accent-primary-surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            animation: pulse-ai 1.2s infinite ease-in-out;
+          }
+          .loading-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+          }
+          .skeleton-lines {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          @keyframes pulse-ai {
+            0%, 100% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.05); opacity: 1; }
+          }
+        `}</style>
       </div>
     );
   }
@@ -157,12 +195,11 @@ export default function AnswerView({
       answer.toLowerCase().includes('request the admin') ||
       answer.toLowerCase().includes('request this playlist'));
 
-  // Memoize markdown rendering for smooth performance during streaming and re-renders
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const renderedHtml = useMemo(() => {
     return renderEnhancedMarkdown(answer + (isLoading ? ' ▌' : ''));
   }, [answer, isLoading]);
 
-  // Handle click on inline citation badge to jump player
   const handleContentClick = (e) => {
     const badge = e.target.closest('.inline-citation-badge');
     if (!badge || !onJumpToCitation) return;
@@ -171,7 +208,6 @@ export default function AnswerView({
     const titleStr = badge.dataset.citationTitle;
     if (!tsStr) return;
 
-    // Parse mm:ss or hh:mm:ss to seconds
     const parts = tsStr.split(':').map(Number);
     let seconds = 0;
     if (parts.length === 2) {
@@ -180,7 +216,6 @@ export default function AnswerView({
       seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
     }
 
-    // Match video in sources
     let matchedVideoId = null;
     if (sources && sources.length > 0) {
       const match = sources.find(
@@ -195,196 +230,290 @@ export default function AnswerView({
   };
 
   return (
-    <div className="answer-view-card clay-card-flat animate-fade-in">
-      {/* Header */}
+    <div className="stitch-card answer-container animate-fade-in">
+      {/* Header Bar */}
       <div className="answer-header">
-        <div className="ai-icon-box">
-          🧠
+        <div className="header-left">
+          <div className="ai-icon-box">🧠</div>
+          <div>
+            <h3 className="answer-heading">
+              Grounded AI Explanation
+            </h3>
+            <p className="answer-sub">
+              {channelTitle ? `Grounded in ${channelTitle} Transcripts` : 'Verified Lecture Transcripts'}
+            </p>
+          </div>
         </div>
-        <span className="ai-title">
-          {playlistTitle ? `${playlistTitle}${channelTitle ? ` (${channelTitle})` : ''} AI Tutor` : 'AI Answer'}
-        </span>
-        <div className="clay-badge answer-badge">
+
+        <div className="header-right">
           {isLoading ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontWeight: 700 }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }} />
-              Streaming live...
+            <span className="live-stream-badge">
+              <span className="pulse-dot" /> Streaming live
             </span>
           ) : (
-            channelTitle
-              ? `Trained on ${playlistTitle} • ${channelTitle}`
-              : `Trained on ${playlistTitle || 'this playlist'}`
+            <span className="source-verified-badge">
+              ✓ Grounded in Lectures
+            </span>
           )}
         </div>
       </div>
 
       {/* Answer Content */}
       <div
-        className="markdown-content answer-content-box"
+        className="markdown-content answer-body"
         onClick={handleContentClick}
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
 
-      {/* Direct In-Answer CTA when topic is not in playlist */}
-      {isNotCovered && !isLoading && (
-        <div className="in-answer-cta clay-card-flat animate-pop-in">
-          <div className="cta-info">
-            <div className="cta-icon">
-              📩
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.92rem' }}>
-                Want this subject added to StudyTube AI?
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Request the admin to index a YouTube playlist for this course!
-              </div>
-            </div>
+      {/* Action Footer (Helpful, Copy, Anki Export) */}
+      {!isLoading && (
+        <div className="answer-footer">
+          <div className="footer-left">
+            <span className="footer-label">Was this helpful?</span>
+            <button
+              onClick={() => setIsHelpful(true)}
+              className={`feedback-btn ${isHelpful === true ? 'active-feedback' : ''}`}
+            >
+              👍 Yes
+            </button>
+            <button
+              onClick={() => setIsHelpful(false)}
+              className={`feedback-btn ${isHelpful === false ? 'active-feedback' : ''}`}
+            >
+              👎 No
+            </button>
           </div>
 
+          <div className="footer-right">
+            <button onClick={handleCopy} className="clay-button footer-action-btn">
+              {copied ? '✓ Copied!' : '📋 Copy'}
+            </button>
+            <button onClick={handleExportAnki} className="clay-button footer-action-btn anki-btn">
+              🗂️ Export Anki
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Not Covered CTA */}
+      {isNotCovered && !isLoading && (
+        <div className="in-answer-cta">
+          <div className="cta-left">
+            <span style={{ fontSize: '24px' }}>📩</span>
+            <div>
+              <strong>Topic not covered in this playlist?</strong>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+                Request our team to index the exact YouTube course you need!
+              </p>
+            </div>
+          </div>
           <button
             onClick={() => onRequestPlaylist && onRequestPlaylist(userQuery)}
-            className="clay-button cta-btn"
+            className="clay-button cta-submit-btn"
           >
-            ✨ Request This Playlist
+            ✨ Request Course
           </button>
         </div>
       )}
 
       <style jsx>{`
-        .answer-view-card {
-          padding: 26px;
-          margin-bottom: 20px;
+        .answer-container {
+          padding: 20px;
+          border-radius: var(--radius-lg);
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
         }
 
         .answer-header {
           display: flex;
           align-items: center;
-          gap: 12px;
-          margin-bottom: 16px;
+          justify-content: space-between;
+          border-bottom: 1px solid var(--border-subtle);
+          padding-bottom: 12px;
+          gap: 10px;
           flex-wrap: wrap;
         }
 
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
         .ai-icon-box {
-          width: 38px;
-          height: 38px;
-          border-radius: var(--radius-sm);
-          background: var(--accent-primary-surface);
-          box-shadow: var(--clay-shadow-sm);
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+          color: #fff;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 18px;
+          box-shadow: var(--clay-shadow-accent);
           flex-shrink: 0;
         }
 
-        .ai-title {
+        .answer-heading {
+          font-size: 0.96rem;
           font-weight: 800;
           color: var(--text-primary);
-          font-size: 1rem;
+          line-height: 1.2;
         }
 
-        .answer-badge {
-          margin-left: auto;
+        .answer-sub {
           font-size: 0.74rem;
+          color: var(--text-muted);
+          font-weight: 600;
         }
 
-        .answer-content-box {
-          padding: 20px;
+        .live-stream-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 3px 10px;
+          background: var(--accent-success-surface);
+          border: 1px solid var(--accent-success-border);
+          border-radius: var(--radius-full);
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: var(--accent-success);
+        }
+
+        .pulse-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--accent-success);
+          animation: pulse 1s infinite;
+        }
+
+        .source-verified-badge {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: var(--accent-primary);
+          background: var(--accent-primary-surface);
+          border: 1px solid var(--accent-primary-border);
+          padding: 3px 10px;
+          border-radius: var(--radius-full);
+        }
+
+        .answer-body {
+          padding: 16px;
           border-radius: var(--radius-md);
           background: var(--bg-input);
-          box-shadow: var(--clay-shadow-pressed);
-          line-height: 1.7;
-          overflow-wrap: break-word;
-          word-break: break-word;
+          border: 1px solid var(--border-subtle);
+          line-height: 1.68;
         }
 
-        .in-answer-cta {
-          margin-top: 18px;
-          padding: 16px 20px;
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%);
-          border: 1.5px dashed rgba(99, 102, 241, 0.45);
-          border-radius: var(--radius-md);
+        .answer-footer {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          padding-top: 8px;
+          border-top: 1px solid var(--border-subtle);
           flex-wrap: wrap;
+          gap: 10px;
         }
 
-        .cta-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex: 1 1 240px;
-        }
-
-        .cta-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: var(--radius-sm);
-          background: var(--accent-primary-surface);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 20px;
-          box-shadow: var(--clay-shadow-sm);
-          flex-shrink: 0;
-        }
-
-        .cta-btn {
-          padding: 10px 20px;
-          font-size: 0.88rem;
-          font-weight: 800;
-          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+        .footer-left {
           display: flex;
           align-items: center;
           gap: 6px;
+        }
+
+        .footer-label {
+          font-size: 0.76rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          margin-right: 4px;
+        }
+
+        .feedback-btn {
+          padding: 4px 10px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-full);
+          color: var(--text-secondary);
           cursor: pointer;
+          transition: all 0.16s;
+        }
+
+        .feedback-btn:hover {
+          background: var(--bg-hover);
+        }
+
+        .active-feedback {
+          background: var(--accent-primary-surface);
+          border-color: var(--accent-primary-border);
+          color: var(--accent-primary);
+        }
+
+        .footer-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .footer-action-btn {
+          font-size: 0.76rem;
+          padding: 5px 12px;
+          font-weight: 700;
+        }
+
+        .anki-btn {
+          background: var(--accent-secondary-surface);
+          border-color: rgba(139, 92, 246, 0.3);
+          color: var(--accent-secondary);
+        }
+
+        .in-answer-cta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 18px;
+          background: var(--accent-primary-surface);
+          border: 1px solid var(--accent-primary-border);
+          border-radius: var(--radius-md);
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .cta-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .cta-submit-btn {
+          background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+          color: #fff;
+          font-size: 0.8rem;
+          padding: 8px 16px;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
 
         @media (max-width: 640px) {
-          .answer-view-card {
-            padding: 16px 14px;
-            margin-bottom: 16px;
-          }
-
-          .answer-content-box {
-            padding: 14px 12px;
-            font-size: 0.92rem;
-          }
-
-          .answer-header {
-            gap: 8px;
-          }
-
-          .ai-title {
-            font-size: 0.92rem;
-          }
-
-          .answer-badge {
-            margin-left: 0;
-            width: 100%;
-            justify-content: center;
-          }
-
-          .in-answer-cta {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 12px;
+          .answer-container {
             padding: 14px;
           }
-
-          .cta-btn {
+          .answer-footer {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .footer-right {
             width: 100%;
-            justify-content: center;
+            justify-content: flex-end;
           }
         }
       `}</style>
     </div>
   );
 }
-
-

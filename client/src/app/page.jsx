@@ -11,10 +11,11 @@ import SourceCards from '@/components/SourceCards';
 import RequestPlaylistModal from '@/components/RequestPlaylistModal';
 import AvailablePlaylistsModal from '@/components/AvailablePlaylistsModal';
 import HeroBanner from '@/components/HeroBanner';
-import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylist, searchPlaylistStream, initKeepAliveHeartbeat } from '@/lib/api';
+import { getHealth, getPlaylists, getPlaylist, transcribePlaylist, searchPlaylistStream, initKeepAliveHeartbeat } from '@/lib/api';
 
 export default function Home() {
-  // App state
+  // App & Theme state
+  const [theme, setTheme] = useState('light');
   const [isConnected, setIsConnected] = useState(false);
   const [vectorCount, setVectorCount] = useState(0);
 
@@ -34,9 +35,14 @@ export default function Home() {
   const [recentPlaylists, setRecentPlaylists] = useState([]);
   const [isColdStarting, setIsColdStarting] = useState(false);
 
+  // Mobile Companion State
+  const [mobileTab, setMobileTab] = useState('doubts'); // 'doubts' | 'lectures' | 'notes'
+  const [mobileFloatingQuery, setMobileFloatingQuery] = useState('');
+
   // Player state
   const [selectedVideoId, setSelectedVideoId] = useState(null);
   const [playTime, setPlayTime] = useState(0);
+  const [playTrigger, setPlayTrigger] = useState(0);
 
   // Search state
   const [answer, setAnswer] = useState('');
@@ -69,13 +75,32 @@ export default function Home() {
     }
   };
 
-  // Check API health and restore cached session on mount
+  const handleToggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studytube_theme', nextTheme);
+      document.documentElement.setAttribute('data-theme', nextTheme);
+    }
+  };
+
+  // Restore Theme, Session, and URL parameters on mount
   useEffect(() => {
     let initialTargetPlaylistId = null;
 
-    // 1. Instant Session & URL Query Restore (0ms First Paint)
     if (typeof window !== 'undefined') {
       try {
+        // Theme initialization
+        const savedTheme = localStorage.getItem('studytube_theme');
+        if (savedTheme) {
+          setTheme(savedTheme);
+          document.documentElement.setAttribute('data-theme', savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          setTheme('dark');
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        // Instant Session & URL Query Restore (0ms First Paint)
         const params = new URLSearchParams(window.location.search);
         const urlPlaylist = params.get('playlist');
         if (urlPlaylist) {
@@ -87,7 +112,6 @@ export default function Home() {
         if (cachedSession) {
           const parsed = JSON.parse(cachedSession);
           if (parsed && parsed.playlist_id) {
-            // Prioritize URL parameter if provided, otherwise use cached session
             if (!initialTargetPlaylistId || initialTargetPlaylistId === parsed.playlist_id) {
               setActivePlaylistId(parsed.playlist_id);
               setActivePlaylistTitle(parsed.playlist_title || '');
@@ -116,12 +140,12 @@ export default function Home() {
       }
     }
 
-    // 2. Cold-start detector timer (fires if API takes > 2.5s)
+    // Cold-start detector timer
     const coldTimer = setTimeout(() => {
       setIsColdStarting(true);
     }, 2500);
 
-    // 3. Network revalidation & keep-alive heartbeat
+    // Keep-alive heartbeat & initial fetch
     initKeepAliveHeartbeat();
     checkHealth();
     loadPlaylists(initialTargetPlaylistId).finally(() => {
@@ -140,162 +164,122 @@ export default function Home() {
     }
   };
 
-  const updateRecentPlaylists = (playlist) => {
-    if (!playlist || !playlist.playlist_id) return;
-    setRecentPlaylists((prev) => {
-      const filtered = prev.filter(p => p.playlist_id !== playlist.playlist_id);
-      const updated = [
-        {
-          playlist_id: playlist.playlist_id,
-          playlist_title: playlist.playlist_title || playlist.title,
-          channel_title: playlist.channel_title || ''
-        },
-        ...filtered
-      ].slice(0, 5);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('studytube_recent_playlists', JSON.stringify(updated));
-      }
-      return updated;
-    });
-  };
-
+  // Load available playlists from backend
   const loadPlaylists = async (preferredPlaylistId = null) => {
     try {
-      const data = await getPlaylists({ page: 1, limit: 20 });
-      const fetchedPlaylists = data.playlists || [];
-      setPlaylists(fetchedPlaylists);
-      setTotalPlaylistsCount(data.total || fetchedPlaylists.length);
-
-      if (fetchedPlaylists.length > 0 && typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('studytube_catalog_cache', JSON.stringify({
-            playlists: fetchedPlaylists,
-            total: data.total || fetchedPlaylists.length
-          }));
-        } catch (e) {}
+      const data = await getPlaylists({ page: 1, limit: 100 });
+      let list = [];
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && Array.isArray(data.playlists)) {
+        list = data.playlists;
+        setTotalPlaylistsCount(data.total || list.length);
       }
+      setPlaylists(list);
 
       const targetId = preferredPlaylistId || activePlaylistId;
-
-      if (targetId) {
-        const found = fetchedPlaylists.find(p => p.playlist_id === targetId);
+      if (list.length > 0) {
+        const found = list.find((p) => p.playlist_id === targetId);
         if (found) {
           setActivePlaylistTitle(found.playlist_title);
+          if (!videos || videos.length === 0 || preferredPlaylistId) {
+            loadPlaylistVideos(found.playlist_id);
+          }
+        } else if (!activePlaylistId) {
+          setActivePlaylistId(list[0].playlist_id);
+          setActivePlaylistTitle(list[0].playlist_title);
+          loadPlaylistVideos(list[0].playlist_id);
         }
-        loadPlaylistVideos(targetId, preferredPlaylistId ? true : false);
-      } else if (fetchedPlaylists.length > 0) {
-        // Auto-select first playlist if none selected yet
-        const first = fetchedPlaylists[0];
-        setActivePlaylistId(first.playlist_id);
-        setActivePlaylistTitle(first.playlist_title);
-        loadPlaylistVideos(first.playlist_id, true);
       }
-    } catch {
-      // API not ready yet
+    } catch (err) {
+      console.error('Error loading playlists:', err);
     }
   };
 
-  const loadPlaylistVideos = async (playlistId, showLoadingSpinner = true) => {
-    if (showLoadingSpinner && videos.length === 0) {
-      setIsLoadingVideos(true);
-    }
-
+  // Progressive Video Loading
+  const loadPlaylistVideos = async (playlistId) => {
+    setIsLoadingVideos(true);
     try {
-      // Step 1: Progressive Batch 1 - Fetch first 5 lectures instantly
-      const firstBatch = await getPlaylist(playlistId, { offset: 0, limit: 5 });
-      const initialVideos = firstBatch.videos || [];
+      const initialData = await getPlaylist(playlistId, { offset: 0, limit: 10 });
+      const initialVideos = initialData.videos || [];
+      const totalCount = initialData.total_videos || initialVideos.length;
 
-      if (initialVideos.length > 0) {
-        setVideos(initialVideos);
-        if (!selectedVideoId || showLoadingSpinner) {
-          setSelectedVideoId(initialVideos[0].video_id);
-        }
+      setVideos(initialVideos);
+      setVideoStats({ loaded: initialVideos.length, total: totalCount });
+
+      if (initialVideos.length > 0 && !selectedVideoId) {
+        setSelectedVideoId(initialVideos[0].video_id);
       }
 
-      setVideoStats({
-        loaded: initialVideos.length,
-        total: firstBatch.total_videos || initialVideos.length
-      });
+      // Cache session in localStorage
+      if (typeof window !== 'undefined') {
+        const sessionPayload = {
+          playlist_id: playlistId,
+          playlist_title: activePlaylistTitle,
+          videos: initialVideos,
+          selectedVideoId: initialVideos[0]?.video_id || null,
+          total: totalCount
+        };
+        localStorage.setItem('studytube_active_session', JSON.stringify(sessionPayload));
+
+        // Add to recent courses
+        const currentRecent = JSON.parse(localStorage.getItem('studytube_recent_playlists') || '[]');
+        const updatedRecent = [
+          { playlist_id: playlistId, playlist_title: activePlaylistTitle },
+          ...currentRecent.filter(r => r.playlist_id !== playlistId)
+        ].slice(0, 5);
+        setRecentPlaylists(updatedRecent);
+        localStorage.setItem('studytube_recent_playlists', JSON.stringify(updatedRecent));
+      }
 
       setIsLoadingVideos(false);
 
-      // Cache active session
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('studytube_active_session', JSON.stringify({
-          playlist_id: playlistId,
-          playlist_title: firstBatch.title,
-          selectedVideoId: initialVideos[0]?.video_id,
-          total: firstBatch.total_videos,
-          videos: initialVideos.slice(0, 5)
-        }));
-      }
-
-      updateRecentPlaylists({
-        playlist_id: playlistId,
-        playlist_title: firstBatch.title,
-        channel_title: firstBatch.channel_title
-      });
-
-      // Step 2: Progressive Batch 2 - Background fetch of remaining lectures
-      if (firstBatch.has_more && firstBatch.total_videos > initialVideos.length) {
+      // Stream remaining videos in background
+      if (initialData.has_more) {
         setIsLoadingMoreVideos(true);
-        const remainingBatch = await getPlaylist(playlistId, {
-          offset: initialVideos.length,
-          limit: 200
-        });
-        const allVideos = [...initialVideos, ...(remainingBatch.videos || [])];
+        const fullData = await getPlaylist(playlistId, { offset: 10, limit: 1000 });
+        const allVideos = [...initialVideos, ...(fullData.videos || [])];
         setVideos(allVideos);
-        setVideoStats({
-          loaded: allVideos.length,
-          total: remainingBatch.total_videos || allVideos.length
-        });
+        setVideoStats({ loaded: allVideos.length, total: fullData.total_videos || allVideos.length });
+
+        if (typeof window !== 'undefined') {
+          const sessionPayload = {
+            playlist_id: playlistId,
+            playlist_title: activePlaylistTitle,
+            videos: allVideos,
+            selectedVideoId: selectedVideoId || allVideos[0]?.video_id,
+            total: fullData.total_videos || allVideos.length
+          };
+          localStorage.setItem('studytube_active_session', JSON.stringify(sessionPayload));
+        }
         setIsLoadingMoreVideos(false);
       }
     } catch (err) {
-      console.error('Failed to load playlist videos:', err);
+      console.error('Error fetching playlist details:', err);
       setIsLoadingVideos(false);
       setIsLoadingMoreVideos(false);
     }
   };
 
-  // Switch playlist handler
-  const handleSelectPlaylist = (playlistId) => {
-    const pl = playlists.find(p => p.playlist_id === playlistId) || recentPlaylists.find(p => p.playlist_id === playlistId);
-    setActivePlaylistId(playlistId);
-    if (pl) {
-      setActivePlaylistTitle(pl.playlist_title);
+  const handleSelectPlaylist = (id) => {
+    setActivePlaylistId(id);
+    const chosen = playlists.find((p) => p.playlist_id === id);
+    if (chosen) {
+      setActivePlaylistTitle(chosen.playlist_title);
     }
-    loadPlaylistVideos(playlistId, true);
     setAnswer('');
     setSources([]);
+    loadPlaylistVideos(id);
   };
 
-  // Ingest a playlist
   const handleIngest = async (url) => {
     setIsIngesting(true);
-    setIngestStatus('Fetching playlist and transcribing videos...');
-    setAnswer('');
-    setSources([]);
-
+    setIngestStatus('Analyzing and indexing YouTube playlist into Qdrant...');
     try {
-      const data = await transcribePlaylist(url);
-
-      if (data.success) {
-        setActivePlaylistId(data.playlist.playlist_id);
-        setActivePlaylistTitle(data.playlist.title);
-        setIngestStatus(`✅ Indexed ${data.playlist.video_count} videos (${data.playlist.chunk_count} chunks)`);
-
-        // Reload videos
-        await loadPlaylistVideos(data.playlist.playlist_id);
-        await loadPlaylists();
-        await checkHealth();
-
-        // Set first video
-        const vids = data.videos || [];
-        if (vids.length > 0) {
-          setSelectedVideoId(vids[0].video_id);
-        }
-      }
+      const res = await transcribePlaylist(url);
+      setIngestStatus(`✅ Successfully indexed! Processed ${res.videos_processed} videos into ${res.total_chunks} vector chunks.`);
+      await loadPlaylists(res.playlist_id);
+      checkHealth();
     } catch (err) {
       setIngestStatus(`❌ Error: ${err.message}`);
     } finally {
@@ -311,6 +295,7 @@ export default function Home() {
     setAnswer('');
     setSources([]);
     setActiveSourceIdx(-1);
+    setMobileTab('doubts'); // Ensure mobile view displays the answer
 
     let fullAnswerText = '';
     try {
@@ -353,54 +338,11 @@ export default function Home() {
     }
   };
 
-  // 1-Click Interactive Demo handler from Hero Banner
   const handleTryDemo = async (query, playlistId, playlistTitle) => {
     setActivePlaylistId(playlistId);
     setActivePlaylistTitle(playlistTitle);
     await loadPlaylistVideos(playlistId);
-    setAnswer('');
-    setSources([]);
-    setIsSearching(true);
-    setLastQuery(query);
-    setActiveSourceIdx(-1);
-
-    let fullAnswerText = '';
-    try {
-      await searchPlaylistStream(
-        query,
-        playlistId,
-        5,
-        (token) => {
-          fullAnswerText += token;
-          setAnswer((prev) => prev + token);
-        },
-        (newSources) => {
-          setSources(newSources || []);
-          if (newSources && newSources.length > 0) {
-            const first = newSources[0];
-            setSelectedVideoId(first.video_id);
-            setPlayTime(first.timestamp);
-            setActiveSourceIdx(0);
-            setPlayTrigger((prev) => prev + 1);
-          }
-        }
-      );
-
-      const ansLower = fullAnswerText.toLowerCase();
-      if (
-        ansLower.includes('not covered') ||
-        ansLower.includes('not appear to be a standard technical term') ||
-        ansLower.includes('transcription error') ||
-        ansLower.includes('request this playlist')
-      ) {
-        setSources([]);
-        setActiveSourceIdx(-1);
-      }
-    } catch (err) {
-      setAnswer(`Error: ${err.message}`);
-    } finally {
-      setIsSearching(false);
-    }
+    handleSearch(query);
 
     setTimeout(() => {
       const el = document.getElementById('player-section');
@@ -410,16 +352,12 @@ export default function Home() {
     }, 150);
   };
 
-  const [playTrigger, setPlayTrigger] = useState(0);
-
-  // Click a source card
   const handleSourceClick = useCallback((source, idx) => {
     setSelectedVideoId(source.video_id);
     setPlayTime(source.timestamp);
     setActiveSourceIdx(idx);
     setPlayTrigger(prev => prev + 1);
 
-    // Auto-scroll up to the video player
     setTimeout(() => {
       const el = document.getElementById('player-section');
       if (el) {
@@ -428,14 +366,12 @@ export default function Home() {
     }, 50);
   }, []);
 
-  // Click a video in the sidebar
   const handleSelectVideo = useCallback((video) => {
     setSelectedVideoId(video.video_id);
     setPlayTime(0);
     setActiveSourceIdx(-1);
     setPlayTrigger(prev => prev + 1);
 
-    // Auto-scroll up to the video player
     setTimeout(() => {
       const el = document.getElementById('player-section');
       if (el) {
@@ -446,123 +382,101 @@ export default function Home() {
 
   const activePlaylist = playlists.find(p => p.playlist_id === activePlaylistId);
   const activeChannelTitle = activePlaylist?.channel_title || '';
+  const currentVideoTitle = (videos.find(v => v.video_id === selectedVideoId) || sources.find(s => s.video_id === selectedVideoId))?.title || '';
 
   return (
     <div className="app-container">
+      {/* Top Header */}
       <Header
         vectorCount={vectorCount}
         isConnected={isConnected}
         onRequestPlaylist={() => handleOpenRequestModal('')}
-        onOpenAvailablePlaylists={() => setIsAvailableModalOpen(true)}
         playlistCount={totalPlaylistsCount || playlists.length}
+        activePlaylistTitle={activePlaylistTitle}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
       {/* Cloud Server Cold-Start Reassurance Banner */}
       {isColdStarting && (
-        <div
-          className="clay-card-flat animate-fade-in"
-          style={{
-            padding: '10px 18px',
-            margin: '12px 0 6px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            fontSize: '0.84rem',
-            color: 'var(--accent-primary)',
-            background: 'var(--accent-primary-surface)',
-            borderRadius: 'var(--radius-md)',
-            fontWeight: 700,
-            boxShadow: 'var(--clay-shadow-sm)',
-            border: '1px solid var(--accent-primary)',
-          }}
-        >
+        <div className="stitch-card cold-start-banner animate-fade-in">
           <span style={{ fontSize: '1.25rem' }}>☕</span>
           <div style={{ flex: 1 }}>
-            <strong>Waking up cloud server...</strong>{' '}
-            <span style={{ fontWeight: 500, opacity: 0.9 }}>
-              Free-tier instances take a few seconds to spin up after inactivity. Your courses will appear in a moment!
+            <strong>Waking up cloud backend...</strong>{' '}
+            <span style={{ opacity: 0.85 }}>
+              Free-tier instances take a few seconds to spin up. Your courses will appear in a moment!
             </span>
           </div>
         </div>
       )}
 
-      {/* Hero / Value Proposition Banner */}
+      {/* Hero Banner */}
       <HeroBanner
         onTryDemo={handleTryDemo}
         onRequestClick={() => handleOpenRequestModal('')}
       />
 
-      {/* Admin-Only Playlist Ingestion Panel */}
+      {/* Admin Panel */}
       {isAdmin && (
-        <div style={{ marginTop: '24px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-              padding: '8px 16px',
-              background: 'rgba(99, 102, 241, 0.1)',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.82rem',
-              color: 'var(--accent-primary)',
-              fontWeight: 800,
-            }}
-          >
+        <div style={{ marginTop: '20px' }}>
+          <div className="admin-status-bar">
             <span>👑 Admin Ingestion Panel (Visible to Admin Only)</span>
-            <button
-              onClick={handleAdminToggle}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                textDecoration: 'underline',
-              }}
-            >
+            <button onClick={handleAdminToggle} className="exit-admin-btn">
               Exit Admin
             </button>
           </div>
-
           <PlaylistInput
             onIngest={handleIngest}
             isLoading={isIngesting}
             onRequestClick={() => handleOpenRequestModal('')}
           />
-
-          {/* Ingestion Status */}
           {ingestStatus && (
-            <div
-              className="clay-card-flat animate-fade-in"
-              style={{
-                padding: '14px 22px',
-                marginBottom: '20px',
-                fontSize: '0.88rem',
-                fontWeight: 600,
-                color: ingestStatus.startsWith('✅')
-                  ? '#1a5e3a'
-                  : ingestStatus.startsWith('❌')
-                  ? '#c0392b'
-                  : 'var(--text-secondary)',
-                background: ingestStatus.startsWith('✅')
-                  ? 'var(--accent-success-surface)'
-                  : ingestStatus.startsWith('❌')
-                  ? 'var(--accent-secondary-surface)'
-                  : 'var(--bg-card)',
-              }}
-            >
+            <div className="ingest-status-box animate-fade-in">
               {ingestStatus}
             </div>
           )}
         </div>
       )}
 
-      {/* Main Layout Grid */}
-      <div className="main-grid" style={{ marginTop: '24px' }}>
+      {/* Mobile Top Video Player (Always pinned above tabs on small viewports) */}
+      <div className="mobile-player-container hide-desktop">
+        <YouTubePlayer
+          videoId={selectedVideoId}
+          startTime={playTime}
+          videoTitle={currentVideoTitle}
+          channelTitle={activeChannelTitle}
+          playTrigger={playTrigger}
+        />
+      </div>
 
-        {/* Left: Playlist Sidebar */}
-        <aside>
+      {/* Mobile 3-Tab Segmented Switcher */}
+      <div className="mobile-segmented-wrapper hide-desktop">
+        <div className="segmented-control">
+          <button
+            onClick={() => setMobileTab('doubts')}
+            className={`segmented-pill ${mobileTab === 'doubts' ? 'active' : ''}`}
+          >
+            <span>🤖 AI Doubts</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('lectures')}
+            className={`segmented-pill ${mobileTab === 'lectures' ? 'active' : ''}`}
+          >
+            <span>📚 Lectures ({videos.length})</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('notes')}
+            className={`segmented-pill ${mobileTab === 'notes' ? 'active' : ''}`}
+          >
+            <span>📝 Formulas</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Grid Layout */}
+      <div className="main-grid">
+        {/* Left: Playlist Sidebar (Always visible on Desktop; visible under 'lectures' tab on mobile) */}
+        <aside className={`desktop-sidebar ${mobileTab !== 'lectures' ? 'hide-mobile' : ''}`}>
           <PlaylistSidebar
             videos={videos}
             selectedVideoId={selectedVideoId}
@@ -579,97 +493,145 @@ export default function Home() {
           />
         </aside>
 
-        {/* Right: Player + Search + Results */}
-        <main style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* YouTube Player */}
-          <YouTubePlayer
-            videoId={selectedVideoId}
-            startTime={playTime}
-            videoTitle={
-              (videos.find(v => v.video_id === selectedVideoId) || sources.find(s => s.video_id === selectedVideoId))?.title || ''
-            }
-            playTrigger={playTrigger}
-          />
+        {/* Right: Main Stage */}
+        <main className={`stage-main ${mobileTab === 'lectures' ? 'hide-mobile' : ''}`}>
+          {/* Desktop Player (Hidden on mobile because mobile uses the top player) */}
+          <div className="desktop-player-container hide-mobile">
+            <YouTubePlayer
+              videoId={selectedVideoId}
+              startTime={playTime}
+              videoTitle={currentVideoTitle}
+              channelTitle={activeChannelTitle}
+              playTrigger={playTrigger}
+            />
+          </div>
 
-          {/* Search */}
-          <SearchBar
-            onSearch={handleSearch}
-            isLoading={isSearching}
-            disabled={!activePlaylistId}
-            playlistTitle={activePlaylistTitle}
-            channelTitle={activeChannelTitle}
-            videos={videos}
-          />
+          {/* AI Doubt Solver View (Visible under 'doubts' tab or on desktop) */}
+          {(mobileTab === 'doubts' || typeof window === 'undefined') && (
+            <div className="doubts-view-group">
+              {/* Search Bar */}
+              <SearchBar
+                onSearch={handleSearch}
+                isLoading={isSearching}
+                disabled={!activePlaylistId}
+                playlistTitle={activePlaylistTitle}
+                channelTitle={activeChannelTitle}
+                videos={videos}
+              />
 
-          {/* AI Answer */}
-          <AnswerView
-            answer={answer}
-            isLoading={isSearching}
-            playlistTitle={activePlaylistTitle}
-            channelTitle={activeChannelTitle}
-            onRequestPlaylist={handleOpenRequestModal}
-            userQuery={lastQuery}
-            sources={sources}
-            onJumpToCitation={(videoId, timestamp) => {
-              if (videoId) setSelectedVideoId(videoId);
-              setPlayTime(timestamp);
-              setPlayTrigger((prev) => prev + 1);
-              setTimeout(() => {
-                const el = document.getElementById('player-section');
-                if (el) {
-                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-              }, 50);
-            }}
-          />
+              {/* AI Answer Card */}
+              <AnswerView
+                answer={answer}
+                isLoading={isSearching}
+                playlistTitle={activePlaylistTitle}
+                channelTitle={activeChannelTitle}
+                onRequestPlaylist={handleOpenRequestModal}
+                userQuery={lastQuery}
+                sources={sources}
+                onJumpToCitation={(vId, ts) => {
+                  if (vId) setSelectedVideoId(vId);
+                  setPlayTime(ts);
+                  setPlayTrigger((prev) => prev + 1);
+                  setTimeout(() => {
+                    const el = document.getElementById('player-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, 50);
+                }}
+              />
 
+              {/* Video Sources with exact timestamp tags */}
+              <SourceCards
+                sources={sources}
+                activeSourceIdx={activeSourceIdx}
+                onSourceClick={handleSourceClick}
+              />
+            </div>
+          )}
 
-          {/* Source Cards */}
-          <SourceCards
-            sources={sources}
-            activeSourceIdx={activeSourceIdx}
-            onSourceClick={handleSourceClick}
-          />
+          {/* Formulas & Exam Notes Tab (Mobile Tab 3) */}
+          {mobileTab === 'notes' && (
+            <div className="stitch-card notes-container animate-fade-in hide-desktop">
+              <div className="notes-header">
+                <span style={{ fontSize: '20px' }}>📝</span>
+                <div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>
+                    High-Yield Exam Formulas & Notes
+                  </h3>
+                  <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    Core theoretical bounds and GATE / syllabus summaries
+                  </p>
+                </div>
+              </div>
+
+              <div className="formula-card">
+                <span className="formula-tag">THEORETICAL BOUND [CRUCIAL]</span>
+                <p style={{ fontFamily: 'monospace', fontWeight: 700, margin: '6px 0', fontSize: '0.92rem' }}>
+                  |Q_DFA| ≤ 2^|Q_NFA| &nbsp;|&nbsp; Practical: |Q_reachable| ≪ 2^|Q_NFA|
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Tip: In 95% of exam problems, unreachable subset states are omitted prior to minimization.
+                </p>
+              </div>
+
+              <div className="formula-card" style={{ borderLeftColor: 'var(--accent-secondary)' }}>
+                <span className="formula-tag" style={{ color: 'var(--accent-secondary)' }}>CLOSURE PROPERTIES</span>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  Regular languages are closed under: <b>Union, Intersection, Concatenation, Kleene Star, Complement</b>.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setMobileTab('doubts')}
+                className="clay-button-primary"
+                style={{ width: '100%', marginTop: '8px', fontSize: '0.85rem' }}
+              >
+                Ask a Doubt About This →
+              </button>
+            </div>
+          )}
         </main>
       </div>
 
-      {/* Footer */}
-      <footer
-        style={{
-          textAlign: 'center',
-          padding: '32px 0 16px',
-          fontSize: '0.8rem',
-          fontWeight: 600,
-          color: 'var(--text-muted)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '14px',
-          flexWrap: 'wrap',
-        }}
-      >
-        <span>Built with 🧠 Groq + ⚡ Vector Search + 🎬 YouTube</span>
-        <span>•</span>
-        <button
-          onClick={handleAdminToggle}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '0.78rem',
-            opacity: 0.5,
-            transition: 'opacity 0.2s',
+      {/* Mobile Floating Bottom Prompt Bar */}
+      <div className="floating-mobile-bar hide-desktop">
+        <input
+          type="text"
+          placeholder="Ask any doubt from this lecture..."
+          value={mobileFloatingQuery}
+          onChange={(e) => setMobileFloatingQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && mobileFloatingQuery.trim()) {
+              handleSearch(mobileFloatingQuery.trim());
+              setMobileFloatingQuery('');
+            }
           }}
-          onMouseEnter={(e) => (e.target.style.opacity = 1)}
-          onMouseLeave={(e) => (e.target.style.opacity = 0.5)}
+          className="floating-mobile-input"
+        />
+        <button
+          onClick={() => {
+            if (mobileFloatingQuery.trim()) {
+              handleSearch(mobileFloatingQuery.trim());
+              setMobileFloatingQuery('');
+            }
+          }}
+          className="floating-send-btn"
+          title="Submit doubt"
+          aria-label="Submit doubt"
         >
+          ↑
+        </button>
+      </div>
+
+      {/* Footer */}
+      <footer className="site-footer">
+        <span>StudyTube AI • Built with 🧠 Groq + ⚡ Qdrant Vector DB + 🎬 YouTube</span>
+        <span>•</span>
+        <button onClick={handleAdminToggle} className="admin-link-btn">
           {isAdmin ? '👑 Admin Mode (Logout)' : 'Admin Portal 🔐'}
         </button>
       </footer>
 
-
-      {/* Available Playlists Modal */}
+      {/* Modals */}
       <AvailablePlaylistsModal
         isOpen={isAvailableModalOpen}
         onClose={() => setIsAvailableModalOpen(false)}
@@ -679,13 +641,142 @@ export default function Home() {
         onRequestPlaylist={handleOpenRequestModal}
       />
 
-      {/* Request Playlist Modal */}
       <RequestPlaylistModal
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
         initialSubject={requestModalSubject}
       />
+
+      <style jsx>{`
+        .cold-start-banner {
+          padding: 10px 18px;
+          margin: 10px 0 6px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 0.82rem;
+          color: var(--accent-primary);
+          background: var(--accent-primary-surface);
+          border-color: var(--accent-primary-border);
+          font-weight: 600;
+        }
+
+        .admin-status-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 8px;
+          padding: 6px 14px;
+          background: var(--accent-primary-surface);
+          border-radius: var(--radius-sm);
+          font-size: 0.8rem;
+          color: var(--accent-primary);
+          font-weight: 800;
+        }
+
+        .exit-admin-btn {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          font-size: 0.78rem;
+          text-decoration: underline;
+        }
+
+        .ingest-status-box {
+          padding: 12px 18px;
+          margin-bottom: 16px;
+          border-radius: var(--radius-md);
+          font-size: 0.85rem;
+          font-weight: 600;
+          background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
+        }
+
+        .mobile-player-container {
+          margin-top: 10px;
+        }
+
+        .mobile-segmented-wrapper {
+          margin: 10px 0 4px;
+        }
+
+        .stage-main {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .doubts-view-group {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .notes-container {
+          padding: 18px;
+          border-radius: var(--radius-lg);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .notes-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          border-bottom: 1px solid var(--border-subtle);
+          padding-bottom: 10px;
+        }
+
+        .formula-tag {
+          font-size: 0.65rem;
+          font-weight: 800;
+          color: var(--accent-primary);
+          letter-spacing: 0.05em;
+        }
+
+        .site-footer {
+          text-align: center;
+          padding: 30px 0 16px;
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .admin-link-btn {
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          cursor: pointer;
+          font-size: 0.76rem;
+          opacity: 0.6;
+        }
+        .admin-link-btn:hover {
+          opacity: 1;
+        }
+
+        .hide-desktop {
+          display: none;
+        }
+
+        @media (max-width: 1024px) {
+          .hide-desktop {
+            display: flex;
+          }
+          .mobile-segmented-wrapper.hide-desktop {
+            display: block;
+          }
+          .hide-mobile {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
-

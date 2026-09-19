@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 
 export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle = '', channelTitle = '', videos = [] }) {
   const [query, setQuery] = useState('');
@@ -16,25 +16,25 @@ export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle
     }
   };
 
-  // Dynamic, playlist-specific suggestions
+  // Dynamic, playlist-specific suggestions matching Stitch prompt chips
   const getSuggestions = () => {
     const titleLower = (playlistTitle || '').toLowerCase();
 
     if (titleLower.includes('toc') || titleLower.includes('computation') || titleLower.includes('theory')) {
       return [
-        'What is DFA and how to construct it?',
-        'Difference between NFA and DFA',
-        'Explain Regular Expressions in TOC',
-        'What is a Turing Machine?',
+        { label: 'DFA vs NFA difference ⚡', query: 'Difference between NFA and DFA with examples' },
+        { label: 'Chomsky Hierarchy table 🧠', query: 'Explain Chomsky Hierarchy grammar types and automata' },
+        { label: 'Closure Properties 🚩', query: 'Closure properties of regular languages under union and concatenation' },
+        { label: 'Pumping Lemma Proof 📐', query: 'How does pumping lemma prove a language is not regular?' },
       ];
     }
 
-    if (titleLower.includes('ai engineer') || titleLower.includes('langgraph') || titleLower.includes('rag')) {
+    if (titleLower.includes('dsa') || titleLower.includes('patterns') || titleLower.includes('neetcode')) {
       return [
-        'What is RAG and how does it work?',
-        'Explain LangGraph agents and nodes',
-        'How do tokens and embeddings work?',
-        'Prompt engineering techniques',
+        { label: 'Two Pointer Pattern ⚡', query: 'Explain two pointer pattern and time complexity' },
+        { label: 'Sliding Window Template 🧠', query: 'Sliding window technique with fixed and dynamic sizes' },
+        { label: 'Dynamic Programming Steps 📐', query: 'Memoization vs Tabulation in Dynamic Programming' },
+        { label: 'Binary Search Edge Cases 🚩', query: 'Binary search boundary conditions and off-by-one errors' },
       ];
     }
 
@@ -49,8 +49,8 @@ export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle
           .replace(/-.*$/g, '')
           .trim();
 
-        if (clean.length > 5 && clean.length < 40 && !generated.some(g => g.includes(clean))) {
-          generated.push(`Explain ${clean}`);
+        if (clean.length > 5 && clean.length < 35 && !generated.some(g => g.label.includes(clean))) {
+          generated.push({ label: `${clean} 💡`, query: `Explain ${clean} in detail with key takeaways` });
         }
         if (generated.length >= 4) break;
       }
@@ -58,137 +58,204 @@ export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle
     }
 
     return [
-      'Summarize key topics in this playlist',
-      'What are the core concepts covered?',
-      'Explain the first video',
+      { label: 'Summarize Key Topics ⚡', query: 'Summarize key topics and main takeaways in this course' },
+      { label: 'Important Exam Concepts 🧠', query: 'What are the most important exam questions from this playlist?' },
+      { label: 'First Lecture Overview 📝', query: 'Explain the concepts introduced in the first video' },
     ];
   };
 
   const suggestions = getSuggestions();
 
   return (
-    <div className="search-bar-container clay-card-flat animate-pop-in">
+    <div className="search-bar-card stitch-card animate-pop-in">
       <form onSubmit={handleSubmit} className="search-form">
-        <div style={{ flex: 1, position: 'relative' }}>
+        <div className="input-field-wrapper">
+          <span className="search-icon-symbol">⚡</span>
           <input
             ref={inputRef}
-            className="clay-input search-input"
+            className="search-input-field"
             type="text"
             placeholder={
               disabled
-                ? 'Index a playlist first...'
+                ? 'Select a course to ask questions...'
                 : playlistTitle
-                  ? `Ask ${playlistTitle}${channelTitle ? ` (${channelTitle})` : ''} AI Tutor anything...`
-                  : 'Ask anything about topics in this playlist...'
+                  ? `Ask anything from ${playlistTitle}...`
+                  : 'Ask any doubt from this playlist...'
             }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={isLoading || disabled}
           />
-
-          <span className="search-icon">
-            🔍
-          </span>
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="clear-btn"
+              title="Clear question"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <button
           type="submit"
-          className="clay-button clay-button-primary search-submit-btn"
+          className="clay-button-primary search-action-btn"
           disabled={isLoading || disabled || !isValid}
         >
           {isLoading ? (
             <>
-              <span className="search-spinner" />
+              <span className="spin-indicator" />
               <span>Thinking...</span>
             </>
           ) : (
             <>
-              <span>✨</span>
-              <span className="btn-text-desktop">Ask AI Tutor</span>
-              <span className="btn-text-mobile">Ask AI</span>
+              <span>Ask AI</span>
+              <span className="btn-arrow">→</span>
             </>
           )}
         </button>
       </form>
 
-      {/* Quick Suggestions - Horizontal swipeable on mobile */}
+      {/* High-Yield Suggestion Chips */}
       {!disabled && !query && (
-        <div className="suggestions-wrapper mobile-swipe-list">
-          {suggestions.map((s) => (
-            <button
-              key={s}
-              className="clay-button suggestion-btn"
-              onClick={() => {
-                setQuery(s);
-                inputRef.current?.focus();
-              }}
-            >
-              💡 {s}
-            </button>
-          ))}
+        <div className="chips-container">
+          <span className="chips-hint">HIGH-YIELD PROMPTS:</span>
+          <div className="chips-row">
+            {suggestions.map((s, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className="high-yield-chip"
+                onClick={() => {
+                  setQuery(s.query);
+                  if (onSearch) onSearch(s.query);
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
       <style jsx>{`
-        .search-bar-container {
-          padding: 24px;
-          margin-bottom: 20px;
-          animation-delay: 0.1s;
+        .search-bar-card {
+          padding: 16px 20px;
+          border-radius: var(--radius-lg);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
 
         .search-form {
           display: flex;
-          gap: 12px;
+          gap: 10px;
           align-items: center;
         }
 
-        .search-input {
-          padding-left: 48px;
-          font-size: 1.02rem;
+        .input-field-wrapper {
+          flex: 1;
+          position: relative;
+          display: flex;
+          align-items: center;
         }
 
-        .search-icon {
+        .search-icon-symbol {
           position: absolute;
-          left: 18px;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 1.2rem;
-          opacity: 0.6;
+          left: 14px;
+          font-size: 1rem;
+          color: var(--accent-primary);
+          pointer-events: none;
         }
 
-        .search-submit-btn {
-          min-width: 140px;
+        .search-input-field {
+          width: 100%;
+          padding: 12px 34px 12px 40px;
+          background: var(--bg-input);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-full);
+          font-size: 0.95rem;
+          color: var(--text-primary);
+          outline: none;
+          transition: all 0.2s ease;
+        }
+
+        .search-input-field:focus {
+          background: var(--bg-card);
+          border-color: var(--accent-primary);
+          box-shadow: 0 0 0 3px var(--accent-primary-surface);
+        }
+
+        .clear-btn {
+          position: absolute;
+          right: 12px;
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          font-size: 0.75rem;
+          cursor: pointer;
+        }
+
+        .search-action-btn {
+          min-width: 120px;
+          padding: 11px 20px;
+          border-radius: var(--radius-full);
+          font-size: 0.88rem;
+          font-weight: 800;
           opacity: ${isLoading || disabled || !isValid ? 0.6 : 1};
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
           white-space: nowrap;
-          padding: 13px 20px;
+          cursor: ${isLoading || disabled || !isValid ? 'not-allowed' : 'pointer'};
+          border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .search-spinner {
+        .btn-arrow {
+          font-size: 1.05rem;
+          transition: transform 0.18s ease;
+        }
+
+        .search-action-btn:hover:not(:disabled) .btn-arrow {
+          transform: translateX(2px);
+        }
+
+        .spin-indicator {
           display: inline-block;
-          width: 16px;
-          height: 16px;
-          border: 3px solid rgba(255, 255, 255, 0.3);
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
           border-top-color: #fff;
           border-radius: 50%;
-          animation: spin 0.7s linear infinite;
+          animation: spin 0.6s linear infinite;
         }
 
-        .btn-text-mobile {
-          display: none;
-        }
-
-        .suggestions-wrapper {
-          margin-top: 14px;
+        .chips-container {
           display: flex;
-          gap: 8px;
+          align-items: center;
+          gap: 10px;
           flex-wrap: wrap;
         }
 
-        .suggestion-btn {
-          font-size: 0.76rem;
-          padding: 6px 14px;
-          color: var(--text-secondary);
+        .chips-hint {
+          font-size: 0.68rem;
+          font-weight: 800;
+          color: var(--text-muted);
+          letter-spacing: 0.05em;
           white-space: nowrap;
+        }
+
+        .chips-row {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          scrollbar-width: none;
+          padding: 2px 0;
+        }
+        .chips-row::-webkit-scrollbar {
+          display: none;
         }
 
         @keyframes spin {
@@ -196,50 +263,20 @@ export default function SearchBar({ onSearch, isLoading, disabled, playlistTitle
         }
 
         @media (max-width: 640px) {
-          .search-bar-container {
-            padding: 16px 14px;
-            margin-bottom: 16px;
+          .search-bar-card {
+            padding: 12px 14px;
           }
 
-          .search-form {
-            gap: 8px;
-          }
-
-          .search-input {
-            padding-left: 42px;
-            padding-right: 12px;
-          }
-
-          .search-icon {
-            left: 14px;
-            font-size: 1.05rem;
-          }
-
-          .search-submit-btn {
+          .search-action-btn {
             min-width: 90px;
             padding: 10px 14px;
             font-size: 0.82rem;
           }
 
-          .btn-text-desktop {
-            display: none;
-          }
-
-          .btn-text-mobile {
-            display: inline;
-          }
-
-          .suggestions-wrapper {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 4px;
-          }
-
-          .suggestion-btn {
-            flex-shrink: 0;
-            font-size: 0.74rem;
-            padding: 6px 12px;
+          .chips-container {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
           }
         }
       `}</style>

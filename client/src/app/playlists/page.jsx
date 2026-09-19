@@ -24,6 +24,30 @@ export default function PlaylistsPage() {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [requestSubject, setRequestSubject] = useState('');
 
+  const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('studytube_theme');
+      if (savedTheme) {
+        setTheme(savedTheme);
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        setTheme('dark');
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    }
+  }, []);
+
+  const handleToggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('studytube_theme', nextTheme);
+      document.documentElement.setAttribute('data-theme', nextTheme);
+    }
+  };
+
   const searchTimerRef = useRef(null);
 
   // Fetch playlists from Catalog API
@@ -199,6 +223,16 @@ export default function PlaylistsPage() {
             <span className="btn-label-desktop">Request Playlist</span>
             <span className="btn-label-mobile">Request</span>
             <span className="btn-tag">FREE</span>
+          </button>
+
+          <button
+            onClick={handleToggleTheme}
+            className="clay-button header-btn"
+            style={{ width: '38px', height: '38px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.05rem' }}
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
           </button>
         </div>
       </header>

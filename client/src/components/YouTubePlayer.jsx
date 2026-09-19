@@ -2,93 +2,80 @@
 
 import { formatTime } from '@/lib/formatters';
 
-/**
- * YouTubePlayer component.
- * Embeds YouTube video with automatic autoplay at the specified timestamp.
- * Updates immediately when videoId or startTime changes.
- */
 export default function YouTubePlayer({
   videoId,
   startTime = 0,
   videoTitle = '',
+  channelTitle = '',
   playTrigger = 0,
+  onCopySummary,
+  onExportAnki,
+  onQuizClick,
 }) {
   if (!videoId) {
     return (
       <div
         id="player-section"
-        className="clay-card-pressed"
-        style={{
-          width: '100%',
-          aspectRatio: '16/9',
-          borderRadius: 'var(--radius-xl)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '12px',
-          color: 'var(--text-muted)',
-          padding: '24px',
-          textAlign: 'center',
-        }}
+        className="stitch-card player-empty-card"
       >
-        <div
-          style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            background: 'var(--bg-card)',
-            boxShadow: 'var(--clay-shadow-md)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '28px',
-          }}
-        >
+        <div className="empty-icon-circle">
           🎬
         </div>
-        <p style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-secondary)' }}>
-          Select any video to play
+        <p className="empty-title">
+          Select any lecture to begin revising
         </p>
-        <p style={{ fontWeight: 600, fontSize: '0.84rem', color: 'var(--text-muted)' }}>
-          Click any video in the sidebar or click a source timestamp card to jump directly to that moment
+        <p className="empty-desc">
+          Click any video from the playlist or click an AI timestamp pill to jump directly to that concept.
         </p>
+
+        <style jsx>{`
+          .player-empty-card {
+            width: 100%;
+            aspect-ratio: 16/9;
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: var(--text-muted);
+            padding: 24px;
+            text-align: center;
+          }
+          .empty-icon-circle {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: var(--accent-primary-surface);
+            border: 1px solid var(--accent-primary-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+          }
+          .empty-title {
+            font-weight: 800;
+            font-size: 1rem;
+            color: var(--text-primary);
+          }
+          .empty-desc {
+            font-weight: 500;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            max-width: 440px;
+          }
+        `}</style>
       </div>
     );
   }
 
-  // Autoplay ONLY when user actively triggered playback (clicked card or sidebar)
   const shouldAutoplay = playTrigger > 0 ? 1 : 0;
   const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=${shouldAutoplay}&start=${Math.max(0, Math.floor(startTime))}&rel=0&enablejsapi=1`;
   const youtubeDirectUrl = `https://www.youtube.com/watch?v=${videoId}${startTime > 0 ? `&t=${Math.floor(startTime)}s` : ''}`;
 
   return (
-    <div id="player-section" className="player-wrapper clay-card">
-      {/* Player Header / Status Bar */}
-      <div className="player-header-bar">
-        <div className="player-title-box">
-          <span className="player-live-dot" />
-          <span className="player-title-text" title={videoTitle}>
-            {videoTitle || 'Now Playing'}
-          </span>
-          {startTime > 0 && (
-            <span className="player-time-badge">
-              @ {formatTime(startTime)}
-            </span>
-          )}
-        </div>
-
-        <a
-          href={youtubeDirectUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="player-direct-link"
-        >
-          Open on YouTube ↗
-        </a>
-      </div>
-
-      {/* Video Iframe with 16:9 Aspect Ratio */}
+    <div id="player-section" className="stitch-card player-wrapper">
+      {/* 16:9 Video Viewport */}
       <div className="player-iframe-container">
         <iframe
           key={`${videoId}_${startTime}_${playTrigger}`}
@@ -101,92 +88,66 @@ export default function YouTubePlayer({
         />
       </div>
 
+      {/* Video Info Header Bar */}
+      <div className="player-meta-bar">
+        <div className="title-area">
+          <h2 className="lecture-title" title={videoTitle}>
+            {videoTitle || 'Now Playing'}
+          </h2>
+          <div className="meta-pills">
+            {channelTitle && (
+              <span className="channel-badge">
+                {channelTitle} <span className="verified-check">✓</span>
+              </span>
+            )}
+            <span className="clay-badge-success status-tag">
+              ⚡ 100% Vector Indexed
+            </span>
+            <span className="hd-tag">
+              1080p HD
+            </span>
+            {startTime > 0 && (
+              <span className="timestamp-pill">
+                ▶ Jumped to {formatTime(startTime)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="player-actions">
+          <a
+            href={youtubeDirectUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="clay-button action-btn yt-btn"
+          >
+            <span>Open on YouTube ↗</span>
+          </a>
+        </div>
+      </div>
+
       <style jsx>{`
         .player-wrapper {
           width: 100%;
           max-width: 100%;
-          border-radius: var(--radius-xl);
+          border-radius: var(--radius-lg);
           overflow: hidden;
-          padding: 16px;
+          padding: 14px;
           display: flex;
           flex-direction: column;
           gap: 12px;
-          scroll-margin-top: 20px;
           box-sizing: border-box;
-        }
-
-        .player-header-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 8px;
-          padding: 0 2px;
-        }
-
-        .player-title-box {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          min-width: 0;
-          flex: 1;
-        }
-
-        .player-live-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: #2ecc71;
-          box-shadow: 0 0 8px #2ecc71;
-          flex-shrink: 0;
-        }
-
-        .player-title-text {
-          font-size: 0.9rem;
-          font-weight: 800;
-          color: var(--text-primary);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          min-width: 0;
-        }
-
-        .player-time-badge {
-          font-size: 0.72rem;
-          font-weight: 800;
-          padding: 2px 8px;
-          border-radius: var(--radius-sm);
-          background: var(--accent-primary-surface);
-          color: var(--accent-primary);
-          border: 1px solid rgba(138, 120, 245, 0.3);
-          flex-shrink: 0;
-          white-space: nowrap;
-        }
-
-        .player-direct-link {
-          font-size: 0.76rem;
-          font-weight: 700;
-          color: var(--accent-primary);
-          text-decoration: none;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          padding: 4px 10px;
-          border-radius: var(--radius-sm);
-          background: var(--bg-hover);
-          transition: all 0.2s ease;
-          flex-shrink: 0;
-          white-space: nowrap;
         }
 
         .player-iframe-container {
           position: relative;
           width: 100%;
-          padding-bottom: 56.25%; /* 16:9 */
-          border-radius: var(--radius-lg);
+          padding-bottom: 56.25%; /* 16:9 ratio */
+          border-radius: 12px;
           overflow: hidden;
           background: #000;
-          box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
         }
 
         .player-iframe {
@@ -198,19 +159,104 @@ export default function YouTubePlayer({
           border: none;
         }
 
+        .player-meta-bar {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .title-area {
+          flex: 1;
+          min-width: 240px;
+        }
+
+        .lecture-title {
+          font-size: 1.05rem;
+          font-weight: 800;
+          color: var(--text-primary);
+          line-height: 1.35;
+          letter-spacing: -0.015em;
+          margin-bottom: 6px;
+        }
+
+        .meta-pills {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .channel-badge {
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: var(--text-secondary);
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .verified-check {
+          color: var(--accent-primary);
+          font-weight: 900;
+        }
+
+        .status-tag {
+          font-size: 0.72rem;
+          padding: 2px 8px;
+        }
+
+        .hd-tag {
+          font-size: 0.7rem;
+          font-weight: 800;
+          padding: 2px 7px;
+          background: var(--bg-hover);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-full);
+          color: var(--text-secondary);
+        }
+
+        .timestamp-pill {
+          font-size: 0.72rem;
+          font-weight: 800;
+          padding: 2px 8px;
+          border-radius: var(--radius-full);
+          background: var(--accent-primary-surface);
+          border: 1px solid var(--accent-primary-border);
+          color: var(--accent-primary);
+        }
+
+        .player-actions {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .action-btn {
+          font-size: 0.78rem;
+          padding: 6px 12px;
+          font-weight: 700;
+        }
+
+        .yt-btn {
+          text-decoration: none;
+          color: var(--text-secondary);
+        }
+
         @media (max-width: 640px) {
           .player-wrapper {
-            padding: 12px;
-            border-radius: var(--radius-lg);
+            padding: 10px;
+            border-radius: 12px;
           }
 
-          .player-title-text {
-            font-size: 0.84rem;
+          .lecture-title {
+            font-size: 0.95rem;
           }
 
-          .player-direct-link {
-            font-size: 0.72rem;
-            padding: 3px 8px;
+          .player-actions {
+            width: 100%;
+            justify-content: flex-end;
           }
         }
       `}</style>

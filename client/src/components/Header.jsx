@@ -6,82 +6,88 @@ export default function Header({
   vectorCount,
   isConnected,
   onRequestPlaylist,
-  onOpenAvailablePlaylists,
   playlistCount = 0,
+  activePlaylistTitle = '',
+  theme = 'light',
+  onToggleTheme,
 }) {
   return (
-    <header className="site-header">
-      {/* Logo & Brand */}
-      <Link href="/" className="brand-group" style={{ textDecoration: 'none' }}>
-        <div className="brand-icon">
-          🎓
-        </div>
-        <div>
-          <h1 className="brand-title">
-            StudyTube AI
-          </h1>
-          <p className="brand-subtitle">
-            Ask anything about your playlists
-          </p>
-        </div>
-      </Link>
+    <header className="site-header stitch-card">
+      {/* Brand Group */}
+      <div className="header-left">
+        <Link href="/" className="brand-group" style={{ textDecoration: 'none' }}>
+          <div className="brand-icon">
+            🎓
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1 className="brand-title">StudyTube AI</h1>
+              <span className="live-status-pill">
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: isConnected ? '#10b981' : '#ef4444',
+                    display: 'inline-block',
+                    boxShadow: isConnected ? '0 0 8px #10b981' : 'none',
+                  }}
+                />
+                {isConnected ? 'Ready' : 'Offline'}
+              </span>
+            </div>
+            <p className="brand-subtitle">
+              {activePlaylistTitle ? activePlaylistTitle : 'AI-Powered Playlist Revision Guide'}
+            </p>
+          </div>
+        </Link>
+      </div>
 
-      {/* Actions & Status Indicators */}
+      {/* Header Actions */}
       <div className="header-actions">
-        {/* Available Playlists Button -> Direct Link to /playlists */}
+        {/* Explore All Playlists */}
         <Link
           href="/playlists"
-          className="clay-button header-btn"
-          title="Explore all available playlists and search courses"
+          className="clay-button header-action-btn"
+          title="Explore all available courses"
           style={{ textDecoration: 'none' }}
         >
-          <span style={{ fontSize: '1.05rem' }}>📚</span>
-          <span className="btn-label-desktop">Available Playlists</span>
-          <span className="btn-label-mobile">Courses</span>
+          <span>📚</span>
+          <span className="btn-text-full">Explore Courses</span>
+          <span className="btn-text-short">Courses</span>
           {playlistCount > 0 && (
-            <span className="btn-counter">
-              {playlistCount}
-            </span>
+            <span className="counter-pill">{playlistCount}</span>
           )}
         </Link>
 
-        {/* Request Playlist Button */}
+        {/* Request Playlist Action */}
         <button
           onClick={onRequestPlaylist}
-          className="clay-button header-btn request-btn"
+          className="clay-button header-action-btn request-btn"
+          title="Request any YouTube playlist to be transcribed & indexed"
         >
-          <span style={{ fontSize: '1.05rem' }}>✨</span>
-          <span className="btn-label-desktop">Request Playlist</span>
-          <span className="btn-label-mobile">Request</span>
-          <span className="btn-tag">
-            FREE
-          </span>
+          <span>✨</span>
+          <span className="btn-text-full">Request Playlist</span>
+          <span className="btn-text-short">Request</span>
+          <span className="free-badge">FREE</span>
         </button>
 
-        {/* Status Indicators */}
-        <div className="status-indicators">
-          <div className="clay-badge-success status-badge">
-            <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: isConnected ? '#4ade80' : '#f87171',
-                display: 'inline-block',
-                boxShadow: isConnected
-                  ? '0 0 8px rgba(74, 222, 128, 0.6)'
-                  : '0 0 8px rgba(248, 113, 113, 0.6)',
-              }}
-            />
-            <span>{isConnected ? 'Connected' : 'Offline'}</span>
-          </div>
+        {/* Light / Dark Mode Toggle */}
+        <button
+          onClick={onToggleTheme}
+          className="clay-button theme-toggle-btn"
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          aria-label="Toggle theme"
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
 
-          {vectorCount > 0 && (
-            <div className="clay-badge-info status-badge hide-xs">
-              📦 {vectorCount.toLocaleString()} vectors
-            </div>
-          )}
-        </div>
+        {/* Vector DB count tag (Desktop) */}
+        {vectorCount > 0 && (
+          <div className="clay-badge-info hide-on-mobile" style={{ fontSize: '0.74rem' }}>
+            ⚡ {vectorCount.toLocaleString()} vectors
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -89,13 +95,17 @@ export default function Header({
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 24px;
-          background: var(--bg-card);
-          border-radius: var(--radius-xl);
-          box-shadow: var(--clay-shadow-lg);
-          margin-bottom: 4px;
+          padding: 12px 20px;
+          border-radius: var(--radius-lg);
           gap: 12px;
           flex-wrap: wrap;
+          margin-bottom: 4px;
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
 
         .brand-group {
@@ -105,146 +115,139 @@ export default function Header({
         }
 
         .brand-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: var(--radius-md);
-          background: var(--accent-primary);
-          box-shadow: var(--clay-shadow-accent);
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          font-size: 22px;
+          box-shadow: var(--clay-shadow-accent);
           flex-shrink: 0;
         }
 
         .brand-title {
-          font-size: 1.35rem;
-          font-weight: 900;
+          font-size: 1.25rem;
+          font-weight: 800;
           color: var(--text-primary);
-          letter-spacing: -0.5px;
-          line-height: 1.2;
+          letter-spacing: -0.02em;
+          line-height: 1.15;
+        }
+
+        .live-status-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 2px 8px;
+          background: var(--accent-success-surface);
+          border: 1px solid var(--accent-success-border);
+          border-radius: var(--radius-full);
+          font-size: 0.68rem;
+          font-weight: 700;
+          color: var(--accent-success);
         }
 
         .brand-subtitle {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           font-weight: 600;
           color: var(--text-muted);
-          margin-top: 1px;
+          margin-top: 2px;
+          max-width: 320px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .header-actions {
           display: flex;
           align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .header-btn {
-          font-size: 0.84rem;
-          padding: 8px 14px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-weight: 800;
-          background: var(--bg-card);
-          color: var(--text-primary);
-          box-shadow: var(--clay-shadow-sm);
-          cursor: pointer;
-          border: 1.5px solid rgba(255, 255, 255, 0.6);
-        }
-
-        .request-btn {
-          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-          color: #ffffff;
-          border: 1.5px solid rgba(255, 255, 255, 0.3);
-          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-counter {
-          background-color: var(--accent-primary);
-          color: #fff;
-          padding: 2px 7px;
-          border-radius: 999px;
-          font-size: 0.7rem;
-          font-weight: 900;
-        }
-
-        .btn-tag {
-          background-color: rgba(255, 255, 255, 0.22);
-          padding: 2px 6px;
-          border-radius: 999px;
-          font-size: 0.68rem;
-          font-weight: 900;
-        }
-
-        .status-indicators {
-          display: flex;
-          align-items: center;
           gap: 8px;
         }
 
-        .status-badge {
-          font-size: 0.74rem;
-          padding: 5px 10px;
+        .header-action-btn {
+          font-size: 0.82rem;
+          padding: 8px 14px;
+          font-weight: 700;
         }
 
-        .btn-label-mobile {
+        .request-btn {
+          background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%) !important;
+          color: #ffffff !important;
+          border-color: rgba(255, 255, 255, 0.25) !important;
+          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+        }
+
+        .counter-pill {
+          background: var(--accent-primary-surface);
+          color: var(--accent-primary);
+          padding: 1px 7px;
+          border-radius: 9999px;
+          font-size: 0.7rem;
+          font-weight: 800;
+        }
+
+        .free-badge {
+          background: rgba(255, 255, 255, 0.25);
+          color: #ffffff;
+          padding: 1px 6px;
+          border-radius: 9999px;
+          font-size: 0.65rem;
+          font-weight: 800;
+        }
+
+        .theme-toggle-btn {
+          width: 38px;
+          height: 38px;
+          padding: 0;
+          border-radius: 50%;
+          font-size: 1.05rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .btn-text-short {
           display: none;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .site-header {
-            padding: 12px 14px;
-            border-radius: var(--radius-lg);
+            padding: 10px 14px;
           }
 
           .brand-icon {
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
+            width: 38px;
+            height: 38px;
+            font-size: 19px;
           }
 
           .brand-title {
-            font-size: 1.15rem;
+            font-size: 1.1rem;
           }
 
           .brand-subtitle {
-            font-size: 0.72rem;
+            max-width: 180px;
           }
 
-          .btn-label-desktop {
+          .btn-text-full {
             display: none;
           }
 
-          .btn-label-mobile {
+          .btn-text-short {
             display: inline;
           }
 
-          .header-actions {
-            width: 100%;
-            justify-content: space-between;
-            gap: 6px;
+          .hide-on-mobile {
+            display: none;
           }
 
-          .header-btn {
-            flex: 1;
+          .header-action-btn {
             padding: 7px 10px;
             font-size: 0.78rem;
-            justify-content: center;
-          }
-
-          .status-indicators {
-            display: none;
-          }
-        }
-
-        @media (max-width: 400px) {
-          .hide-xs {
-            display: none;
           }
         }
       `}</style>
     </header>
   );
 }
-

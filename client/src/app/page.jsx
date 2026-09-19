@@ -438,39 +438,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* Mobile Top Video Player (Always pinned above tabs on small viewports) */}
-      <div className="mobile-player-container hide-desktop">
-        <YouTubePlayer
-          videoId={selectedVideoId}
-          startTime={playTime}
-          videoTitle={currentVideoTitle}
-          channelTitle={activeChannelTitle}
-          playTrigger={playTrigger}
-        />
-      </div>
-
-      {/* Mobile 2-Tab Segmented Switcher */}
-      <div className="mobile-segmented-wrapper hide-desktop">
-        <div className="segmented-control">
-          <button
-            onClick={() => setMobileTab('doubts')}
-            className={`segmented-pill ${mobileTab === 'doubts' ? 'active' : ''}`}
-          >
-            <span>🤖 AI Doubt Solver</span>
-          </button>
-          <button
-            onClick={() => setMobileTab('lectures')}
-            className={`segmented-pill ${mobileTab === 'lectures' ? 'active' : ''}`}
-          >
-            <span>📚 Lectures ({videos.length})</span>
-          </button>
-        </div>
-      </div>
-
       {/* Main Grid Layout */}
       <div className="main-grid">
-        {/* Left: Playlist Sidebar (Always visible on Desktop; visible under 'lectures' tab on mobile) */}
-        <aside className={`desktop-sidebar ${mobileTab !== 'lectures' ? 'hide-mobile' : ''}`}>
+        {/* Left: Playlist Sidebar (Desktop permanent view) */}
+        <aside className="desktop-sidebar hide-mobile">
           <PlaylistSidebar
             videos={videos}
             selectedVideoId={selectedVideoId}
@@ -487,61 +458,94 @@ export default function Home() {
           />
         </aside>
 
-        {/* Right: Main Stage */}
-        <main className={`stage-main ${mobileTab === 'lectures' ? 'hide-mobile' : ''}`}>
-          {/* Desktop Player (Hidden on mobile because mobile uses the top player) */}
-          <div className="desktop-player-container hide-mobile">
-            <YouTubePlayer
-              videoId={selectedVideoId}
-              startTime={playTime}
-              videoTitle={currentVideoTitle}
-              channelTitle={activeChannelTitle}
-              playTrigger={playTrigger}
-            />
+        {/* Right Stage: Single Player + Controls */}
+        <main className="stage-main">
+          {/* SINGLE YouTube Player Instance — Prevents any duplicate audio/echo */}
+          <YouTubePlayer
+            videoId={selectedVideoId}
+            startTime={playTime}
+            videoTitle={currentVideoTitle}
+            channelTitle={activeChannelTitle}
+            playTrigger={playTrigger}
+          />
+
+          {/* Mobile 2-Tab Segmented Switcher (Shown directly under player on mobile) */}
+          <div className="mobile-segmented-wrapper hide-desktop">
+            <div className="segmented-control">
+              <button
+                onClick={() => setMobileTab('doubts')}
+                className={`segmented-pill ${mobileTab === 'doubts' ? 'active' : ''}`}
+              >
+                <span>🤖 AI Doubt Solver</span>
+              </button>
+              <button
+                onClick={() => setMobileTab('lectures')}
+                className={`segmented-pill ${mobileTab === 'lectures' ? 'active' : ''}`}
+              >
+                <span>📚 Lectures ({videos.length})</span>
+              </button>
+            </div>
           </div>
 
-          {/* AI Doubt Solver View (Visible under 'doubts' tab or on desktop) */}
-          {(mobileTab === 'doubts' || typeof window === 'undefined') && (
-            <div className="doubts-view-group">
-              {/* Search Bar */}
-              <SearchBar
-                onSearch={handleSearch}
-                isLoading={isSearching}
-                disabled={!activePlaylistId}
-                playlistTitle={activePlaylistTitle}
-                channelTitle={activeChannelTitle}
+          {/* Mobile View: Lectures List (When 'lectures' tab is active) */}
+          {mobileTab === 'lectures' && (
+            <div className="mobile-lectures-wrapper hide-desktop">
+              <PlaylistSidebar
                 videos={videos}
-              />
-
-              {/* AI Answer Card */}
-              <AnswerView
-                answer={answer}
-                isLoading={isSearching}
+                selectedVideoId={selectedVideoId}
+                onSelectVideo={handleSelectVideo}
                 playlistTitle={activePlaylistTitle}
-                channelTitle={activeChannelTitle}
-                onRequestPlaylist={handleOpenRequestModal}
-                userQuery={lastQuery}
-                sources={sources}
-                onJumpToCitation={(vId, ts) => {
-                  if (vId) setSelectedVideoId(vId);
-                  setPlayTime(ts);
-                  setPlayTrigger((prev) => prev + 1);
-                  setTimeout(() => {
-                    const el = document.getElementById('player-section');
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }, 50);
-                }}
-              />
-
-              {/* Video Sources with exact timestamp tags */}
-              <SourceCards
-                sources={sources}
-                activeSourceIdx={activeSourceIdx}
-                onSourceClick={handleSourceClick}
+                playlists={playlists}
+                activePlaylistId={activePlaylistId}
+                onSelectPlaylist={handleSelectPlaylist}
+                isLoadingVideos={isLoadingVideos}
+                isLoadingMoreVideos={isLoadingMoreVideos}
+                videoStats={videoStats}
+                recentPlaylists={recentPlaylists}
+                onOpenBrowsePlaylists={() => setIsAvailableModalOpen(true)}
               />
             </div>
           )}
 
+          {/* AI Doubt Solver View (Always visible on desktop; visible on mobile when 'doubts' tab is active) */}
+          <div className={`doubts-view-group ${mobileTab === 'lectures' ? 'hide-mobile' : ''}`}>
+            {/* Search Bar */}
+            <SearchBar
+              onSearch={handleSearch}
+              isLoading={isSearching}
+              disabled={!activePlaylistId}
+              playlistTitle={activePlaylistTitle}
+              channelTitle={activeChannelTitle}
+              videos={videos}
+            />
+
+            {/* AI Answer Card */}
+            <AnswerView
+              answer={answer}
+              isLoading={isSearching}
+              playlistTitle={activePlaylistTitle}
+              channelTitle={activeChannelTitle}
+              onRequestPlaylist={handleOpenRequestModal}
+              userQuery={lastQuery}
+              sources={sources}
+              onJumpToCitation={(vId, ts) => {
+                if (vId) setSelectedVideoId(vId);
+                setPlayTime(ts);
+                setPlayTrigger((prev) => prev + 1);
+                setTimeout(() => {
+                  const el = document.getElementById('player-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 50);
+              }}
+            />
+
+            {/* Video Sources with exact timestamp tags */}
+            <SourceCards
+              sources={sources}
+              activeSourceIdx={activeSourceIdx}
+              onSourceClick={handleSourceClick}
+            />
+          </div>
         </main>
       </div>
 

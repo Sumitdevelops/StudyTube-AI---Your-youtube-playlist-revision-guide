@@ -165,6 +165,15 @@ export default function Home() {
       setPlaylists(fetchedPlaylists);
       setTotalPlaylistsCount(data.total || fetchedPlaylists.length);
 
+      if (fetchedPlaylists.length > 0 && typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('studytube_catalog_cache', JSON.stringify({
+            playlists: fetchedPlaylists,
+            total: data.total || fetchedPlaylists.length
+          }));
+        } catch (e) {}
+      }
+
       const targetId = preferredPlaylistId || activePlaylistId;
 
       if (targetId) {

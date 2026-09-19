@@ -142,12 +142,43 @@ def transcribe_playlist_endpoint(req: TranscribeRequest):
         logger.error(f"Error in transcribe playlist: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+import threading
+
+_sync_thread_started = False
+_sync_lock = threading.Lock()
+
+def _trigger_background_sync():
+    global _sync_thread_started
+    with _sync_lock:
+        if not _sync_thread_started:
+            _sync_thread_started = True
+            threading.Thread(target=catalog_db.sync_from_vector_store_if_empty, args=(vector_store,), daemon=True).start()
+
 @router.get("/playlists")
 def get_playlists_endpoint(search: Optional[str] = None, page: int = 1, limit: int = 20):
     try:
-        # Sync from vector store if catalog db is newly initialized
-        catalog_db.sync_from_vector_store_if_empty(vector_store)
+        # Trigger non-blocking background sync if catalog DB is empty
+        if catalog_db.get_total_playlists_count() == 0:
+            _trigger_background_sync()
+
         data = catalog_db.get_playlists(search=search or "", page=page, limit=limit)
+
+        # If catalog is still initializing in background and empty, fallback to cached vector store playlists
+        if data["total"] == 0 and not search:
+            try:
+                vector_playlists = vector_store.get_playlists()
+                if vector_playlists:
+                    return {
+                        "count": len(vector_playlists),
+                        "total": len(vector_playlists),
+                        "page": page,
+                        "limit": limit,
+                        "has_more": False,
+                        "playlists": vector_playlists
+                    }
+            except Exception:
+                pass
+
         return {
             "count": len(data["playlists"]),
             "total": data["total"],
@@ -163,7 +194,6 @@ def get_playlists_endpoint(search: Optional[str] = None, page: int = 1, limit: i
 @router.get("/playlist/{playlist_id}")
 def get_playlist_endpoint(playlist_id: str, offset: int = 0, limit: Optional[int] = None):
     try:
-        catalog_db.sync_from_vector_store_if_empty(vector_store)
         pl_info = catalog_db.get_playlist_meta(playlist_id)
 
         # Fallback to vector store if not in catalog

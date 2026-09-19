@@ -18,6 +18,7 @@ export default function PlaylistsPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('ALL');
+  const [isColdStarting, setIsColdStarting] = useState(false);
 
   // Request modal state
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
@@ -27,9 +28,9 @@ export default function PlaylistsPage() {
 
   // Fetch playlists from Catalog API
   const fetchPlaylists = useCallback(async (query = '', pageNum = 1, append = false) => {
-    if (pageNum === 1) {
+    if (pageNum === 1 && playlists.length === 0) {
       setIsLoading(true);
-    } else {
+    } else if (pageNum > 1) {
       setIsLoadingMore(true);
     }
 
@@ -47,26 +48,60 @@ export default function PlaylistsPage() {
 
       if (append) {
         setPlaylists(prev => {
-          // Avoid duplicates by playlist_id
           const existingIds = new Set(prev.map(p => p.playlist_id));
           const newUnique = fetched.filter(p => !existingIds.has(p.playlist_id));
           return [...prev, ...newUnique];
         });
       } else {
         setPlaylists(fetched);
+        // Cache initial browse list in localStorage for instant 0ms first paint
+        if (!query && pageNum === 1 && typeof window !== 'undefined' && fetched.length > 0) {
+          try {
+            localStorage.setItem('studytube_catalog_cache', JSON.stringify({
+              playlists: fetched,
+              total: data.total || fetched.length
+            }));
+          } catch (e) {
+            console.warn('Could not cache catalog:', e);
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to fetch playlists:', err);
-      if (!append) setPlaylists([]);
+      if (!append && playlists.length === 0) setPlaylists([]);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
   }, [playlists.length]);
 
-  // Initial load
+  // Initial load: 0ms first paint from localStorage + background revalidation
   useEffect(() => {
-    fetchPlaylists('', 1, false);
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('studytube_catalog_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Array.isArray(parsed.playlists) && parsed.playlists.length > 0) {
+            setPlaylists(parsed.playlists);
+            setTotalCount(parsed.total || parsed.playlists.length);
+            setIsLoading(false);
+          }
+        }
+      } catch (e) {
+        console.warn('Error reading catalog cache:', e);
+      }
+    }
+
+    // Cold-start detector: show warning if server takes > 2.5s
+    const coldTimer = setTimeout(() => {
+      setIsColdStarting(true);
+    }, 2500);
+
+    fetchPlaylists('', 1, false).finally(() => {
+      clearTimeout(coldTimer);
+      setIsColdStarting(false);
+    });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced search
@@ -169,6 +204,34 @@ export default function PlaylistsPage() {
 
       {/* Main Content Hub */}
       <main className="playlists-main-content">
+        {/* Cloud Server Cold-Start Reassurance Banner */}
+        {isColdStarting && (
+          <div
+            className="clay-card-flat animate-fade-in"
+            style={{
+              padding: '12px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              fontSize: '0.86rem',
+              color: 'var(--accent-primary)',
+              background: 'var(--accent-primary-surface)',
+              borderRadius: 'var(--radius-md)',
+              fontWeight: 700,
+              border: '1px solid rgba(99, 102, 241, 0.25)',
+              boxShadow: 'var(--clay-shadow-sm)',
+            }}
+          >
+            <span style={{ fontSize: '1.2rem', animation: 'spin 2s linear infinite' }}>⚡</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: 800 }}>Waking up cloud server...</p>
+              <p style={{ margin: 0, fontSize: '0.76rem', opacity: 0.85, fontWeight: 500 }}>
+                Free-tier cloud hosting goes to sleep after inactivity. Please allow ~15 seconds to connect.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Hero Section */}
         <section className="explore-hero-card clay-card-flat">
           <div className="hero-content">

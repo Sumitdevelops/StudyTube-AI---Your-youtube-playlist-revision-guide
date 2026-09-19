@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 export default function Header({
   vectorCount,
   isConnected,
@@ -10,7 +12,7 @@ export default function Header({
   return (
     <header className="site-header">
       {/* Logo & Brand */}
-      <div className="brand-group">
+      <Link href="/" className="brand-group" style={{ textDecoration: 'none' }}>
         <div className="brand-icon">
           🎓
         </div>
@@ -22,15 +24,16 @@ export default function Header({
             Ask anything about your playlists
           </p>
         </div>
-      </div>
+      </Link>
 
       {/* Actions & Status Indicators */}
       <div className="header-actions">
-        {/* Available Playlists Button */}
-        <button
-          onClick={onOpenAvailablePlaylists}
+        {/* Available Playlists Button -> Direct Link to /playlists */}
+        <Link
+          href="/playlists"
           className="clay-button header-btn"
-          title="View all available playlists and search courses"
+          title="Explore all available playlists and search courses"
+          style={{ textDecoration: 'none' }}
         >
           <span style={{ fontSize: '1.05rem' }}>📚</span>
           <span className="btn-label-desktop">Available Playlists</span>
@@ -40,7 +43,7 @@ export default function Header({
               {playlistCount}
             </span>
           )}
-        </button>
+        </Link>
 
         {/* Request Playlist Button */}
         <button

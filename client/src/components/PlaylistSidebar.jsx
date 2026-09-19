@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { formatDuration } from '@/lib/formatters';
 
 export default function PlaylistSidebar({
@@ -186,15 +187,13 @@ export default function PlaylistSidebar({
         <p style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
           Index or select a YouTube course to start studying
         </p>
-        {onOpenBrowsePlaylists && (
-          <button
-            onClick={onOpenBrowsePlaylists}
-            className="clay-button"
-            style={{ fontSize: '0.82rem', padding: '8px 16px', marginTop: '4px' }}
-          >
-            🔍 Browse Courses
-          </button>
-        )}
+        <Link
+          href="/playlists"
+          className="clay-button"
+          style={{ fontSize: '0.82rem', padding: '8px 16px', marginTop: '4px', textDecoration: 'none', color: 'inherit' }}
+        >
+          🔍 Browse Courses
+        </Link>
       </div>
     );
   }
@@ -211,15 +210,14 @@ export default function PlaylistSidebar({
         <div className="course-nav-left">
           <span className="course-nav-label">📚 Course</span>
         </div>
-        {onOpenBrowsePlaylists && (
-          <button
-            onClick={onOpenBrowsePlaylists}
-            className="browse-courses-trigger"
-            title="Search all available courses"
-          >
-            <span>🔍 Switch</span>
-          </button>
-        )}
+        <Link
+          href="/playlists"
+          className="browse-courses-trigger"
+          title="Browse & switch courses in full catalog"
+          style={{ textDecoration: 'none' }}
+        >
+          <span>🔍 Switch</span>
+        </Link>
       </div>
 
       {/* Recent Courses Chips (1-click instant switch) */}

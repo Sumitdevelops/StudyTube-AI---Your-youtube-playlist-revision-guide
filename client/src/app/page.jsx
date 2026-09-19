@@ -71,22 +71,34 @@ export default function Home() {
 
   // Check API health and restore cached session on mount
   useEffect(() => {
-    // 1. Instant Session Restore (0ms First Paint)
+    let initialTargetPlaylistId = null;
+
+    // 1. Instant Session & URL Query Restore (0ms First Paint)
     if (typeof window !== 'undefined') {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const urlPlaylist = params.get('playlist');
+        if (urlPlaylist) {
+          initialTargetPlaylistId = urlPlaylist;
+          setActivePlaylistId(urlPlaylist);
+        }
+
         const cachedSession = localStorage.getItem('studytube_active_session');
         if (cachedSession) {
           const parsed = JSON.parse(cachedSession);
           if (parsed && parsed.playlist_id) {
-            setActivePlaylistId(parsed.playlist_id);
-            setActivePlaylistTitle(parsed.playlist_title || '');
-            if (parsed.videos && parsed.videos.length > 0) {
-              setVideos(parsed.videos);
-              setSelectedVideoId(parsed.selectedVideoId || parsed.videos[0].video_id);
-              setVideoStats({
-                loaded: parsed.videos.length,
-                total: parsed.total || parsed.videos.length
-              });
+            // Prioritize URL parameter if provided, otherwise use cached session
+            if (!initialTargetPlaylistId || initialTargetPlaylistId === parsed.playlist_id) {
+              setActivePlaylistId(parsed.playlist_id);
+              setActivePlaylistTitle(parsed.playlist_title || '');
+              if (parsed.videos && parsed.videos.length > 0) {
+                setVideos(parsed.videos);
+                setSelectedVideoId(parsed.selectedVideoId || parsed.videos[0].video_id);
+                setVideoStats({
+                  loaded: parsed.videos.length,
+                  total: parsed.total || parsed.videos.length
+                });
+              }
             }
           }
         }
@@ -96,7 +108,6 @@ export default function Home() {
           setRecentPlaylists(JSON.parse(cachedRecent));
         }
 
-        const params = new URLSearchParams(window.location.search);
         if (params.get('admin') === 'true' || localStorage.getItem('studytube_admin') === 'true') {
           setIsAdmin(true);
         }
@@ -112,7 +123,7 @@ export default function Home() {
 
     // 3. Network revalidation
     checkHealth();
-    loadPlaylists().finally(() => {
+    loadPlaylists(initialTargetPlaylistId).finally(() => {
       clearTimeout(coldTimer);
       setIsColdStarting(false);
     });
@@ -147,24 +158,27 @@ export default function Home() {
     });
   };
 
-  const loadPlaylists = async () => {
+  const loadPlaylists = async (preferredPlaylistId = null) => {
     try {
       const data = await getPlaylists({ page: 1, limit: 20 });
       const fetchedPlaylists = data.playlists || [];
       setPlaylists(fetchedPlaylists);
       setTotalPlaylistsCount(data.total || fetchedPlaylists.length);
 
-      // Auto-select first playlist if none selected yet
-      if (fetchedPlaylists.length > 0) {
-        if (!activePlaylistId) {
-          const first = fetchedPlaylists[0];
-          setActivePlaylistId(first.playlist_id);
-          setActivePlaylistTitle(first.playlist_title);
-          loadPlaylistVideos(first.playlist_id, true);
-        } else {
-          // Revalidate current playlist in background without showing blocking skeleton
-          loadPlaylistVideos(activePlaylistId, false);
+      const targetId = preferredPlaylistId || activePlaylistId;
+
+      if (targetId) {
+        const found = fetchedPlaylists.find(p => p.playlist_id === targetId);
+        if (found) {
+          setActivePlaylistTitle(found.playlist_title);
         }
+        loadPlaylistVideos(targetId, preferredPlaylistId ? true : false);
+      } else if (fetchedPlaylists.length > 0) {
+        // Auto-select first playlist if none selected yet
+        const first = fetchedPlaylists[0];
+        setActivePlaylistId(first.playlist_id);
+        setActivePlaylistTitle(first.playlist_title);
+        loadPlaylistVideos(first.playlist_id, true);
       }
     } catch {
       // API not ready yet

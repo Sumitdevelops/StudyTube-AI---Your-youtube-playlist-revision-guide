@@ -79,7 +79,26 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
             logger.warning(f"   ⚠️ Could not extract captions or audio: {e}")
 
         if not segments:
-            logger.warning(f"   ⏩ Skipping video (no text available)")
+            logger.warning(f"   ⏩ Skipping vector indexing (no text/captions available)")
+            video_entry = {
+                "video_id": vid,
+                "video_index": i - 1,
+                "title": title,
+                "thumbnail_url": video.get("thumbnail_url", ""),
+                "duration": video.get("duration", 0),
+                "has_transcript": False,
+                "chunk_count": 0
+            }
+            processed_videos_list.append(video_entry)
+            catalog_db.upsert_playlist(
+                playlist_id=playlist["playlist_id"],
+                title=playlist["title"],
+                channel_title=playlist.get("channel_title", ""),
+                thumbnail_url=playlist.get("thumbnail_url", ""),
+                video_count=len(processed_videos_list),
+                chunk_count=total_chunks_indexed
+            )
+            catalog_db.upsert_videos(playlist["playlist_id"], [video_entry])
             continue
 
         # 2. Chunk transcript
@@ -95,6 +114,25 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
 
         if not chunks:
             logger.warning(f"   ⏩ No chunks produced for {vid}")
+            video_entry = {
+                "video_id": vid,
+                "video_index": i - 1,
+                "title": title,
+                "thumbnail_url": video.get("thumbnail_url", ""),
+                "duration": video.get("duration", 0),
+                "has_transcript": False,
+                "chunk_count": 0
+            }
+            processed_videos_list.append(video_entry)
+            catalog_db.upsert_playlist(
+                playlist_id=playlist["playlist_id"],
+                title=playlist["title"],
+                channel_title=playlist.get("channel_title", ""),
+                thumbnail_url=playlist.get("thumbnail_url", ""),
+                video_count=len(processed_videos_list),
+                chunk_count=total_chunks_indexed
+            )
+            catalog_db.upsert_videos(playlist["playlist_id"], [video_entry])
             continue
 
         # 3. Generate embeddings
@@ -118,7 +156,7 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
 
         total_chunks_indexed += len(chunks)
         successful_videos += 1
-        processed_videos_list.append({
+        video_entry = {
             "video_id": vid,
             "video_index": i - 1,
             "title": title,
@@ -126,10 +164,22 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
             "duration": video.get("duration", 0),
             "has_transcript": True,
             "chunk_count": len(chunks)
-        })
-        logger.info(f"   ✅ Indexed successfully! ({len(chunks)} chunks)")
+        }
+        processed_videos_list.append(video_entry)
 
-    # 6. Save metadata into Catalog DB
+        # Progressively save each finished video to catalog so user can start learning immediately
+        catalog_db.upsert_playlist(
+            playlist_id=playlist["playlist_id"],
+            title=playlist["title"],
+            channel_title=playlist.get("channel_title", ""),
+            thumbnail_url=playlist.get("thumbnail_url", ""),
+            video_count=len(processed_videos_list),
+            chunk_count=total_chunks_indexed
+        )
+        catalog_db.upsert_videos(playlist["playlist_id"], [video_entry])
+        logger.info(f"   ✅ Indexed successfully! ({len(chunks)} chunks saved)")
+
+    # 6. Final sync to Catalog DB
     if processed_videos_list:
         catalog_db.upsert_playlist(
             playlist_id=playlist["playlist_id"],
@@ -139,8 +189,7 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
             video_count=len(processed_videos_list),
             chunk_count=total_chunks_indexed
         )
-        catalog_db.upsert_videos(playlist["playlist_id"], processed_videos_list)
-        logger.info("   💾 Saved playlist & video metadata to Catalog DB.")
+        logger.info("   💾 Verified all playlist & video metadata in Catalog DB.")
 
     print("\n" + "=" * 65)
     print(f"🎉 INDEXING COMPLETE!")

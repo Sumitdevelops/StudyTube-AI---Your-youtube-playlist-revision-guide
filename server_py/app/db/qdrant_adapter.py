@@ -1,4 +1,5 @@
 import logging
+import time
 import uuid
 from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient, models
@@ -10,7 +11,8 @@ class QdrantAdapter:
     def __init__(self):
         self.client = QdrantClient(
             url=settings.QDRANT_URL,
-            api_key=settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None
+            api_key=settings.QDRANT_API_KEY if settings.QDRANT_API_KEY else None,
+            timeout=60.0
         )
         self.collection_name = settings.COLLECTION_NAME
         self._initialized = False
@@ -84,14 +86,24 @@ class QdrantAdapter:
                 payload=payload
             ))
 
-        batch_size = 100
+        batch_size = 40
         for i in range(0, len(points), batch_size):
             batch = points[i:i + batch_size]
-            self.client.upsert(
-                collection_name=self.collection_name,
-                points=batch,
-                wait=True
-            )
+            for attempt in range(1, 4):
+                try:
+                    self.client.upsert(
+                        collection_name=self.collection_name,
+                        points=batch,
+                        wait=True
+                    )
+                    break
+                except Exception as e:
+                    if attempt == 3:
+                        logger.error(f"Failed to upsert batch {i // batch_size + 1} after 3 attempts: {e}")
+                        raise e
+                    wait_time = attempt * 2
+                    logger.warning(f"Qdrant upsert attempt {attempt} failed ({e}). Retrying in {wait_time}s...")
+                    time.sleep(wait_time)
 
         logger.info(f"Upserted {len(items)} vectors to Qdrant")
         return {"upsertedCount": len(items)}

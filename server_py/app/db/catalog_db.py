@@ -246,6 +246,12 @@ class CatalogDB:
             "has_more": (offset + len(videos)) < total
         }
 
+    def is_video_indexed(self, playlist_id: str, video_id: str) -> bool:
+        with self._get_connection() as conn:
+            cur = conn.execute("SELECT chunk_count FROM videos WHERE playlist_id = ? AND video_id = ?", (playlist_id, video_id))
+            row = cur.fetchone()
+            return row is not None and row["chunk_count"] > 0
+
     def delete_playlist(self, playlist_id: str):
         with self._get_connection() as conn:
             conn.execute("DELETE FROM playlists WHERE playlist_id = ?", (playlist_id,))

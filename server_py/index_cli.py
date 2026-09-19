@@ -71,6 +71,21 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
         title = video["title"]
         print(f"\n[{i}/{len(videos)}] 🎬 {title} ({vid})")
 
+        # Check if already indexed in Catalog DB (allows resuming without re-indexing)
+        if catalog_db.is_video_indexed(playlist["playlist_id"], vid):
+            logger.info(f"   ⏩ Already indexed in Catalog DB. Skipping.")
+            successful_videos += 1
+            processed_videos_list.append({
+                "video_id": vid,
+                "video_index": i - 1,
+                "title": title,
+                "thumbnail_url": video.get("thumbnail_url", ""),
+                "duration": video.get("duration", 0),
+                "has_transcript": True,
+                "chunk_count": 0
+            })
+            continue
+
         # 1. Fetch transcript or Whisper fallback
         segments = []
         try:
@@ -152,18 +167,23 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
 
         # 5. Save into Qdrant Cloud
         logger.info(f"   💾 Uploading {len(records)} vectors to Qdrant Cloud...")
-        vector_store.upsert(records)
+        try:
+            vector_store.upsert(records)
+            chunk_count = len(chunks)
+            total_chunks_indexed += chunk_count
+            successful_videos += 1
+        except Exception as e:
+            logger.error(f"   ⚠️ Could not upload vectors for {vid} to Qdrant: {e}")
+            chunk_count = 0
 
-        total_chunks_indexed += len(chunks)
-        successful_videos += 1
         video_entry = {
             "video_id": vid,
             "video_index": i - 1,
             "title": title,
             "thumbnail_url": video.get("thumbnail_url", ""),
             "duration": video.get("duration", 0),
-            "has_transcript": True,
-            "chunk_count": len(chunks)
+            "has_transcript": chunk_count > 0,
+            "chunk_count": chunk_count
         }
         processed_videos_list.append(video_entry)
 

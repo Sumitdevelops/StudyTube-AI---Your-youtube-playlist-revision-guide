@@ -2,23 +2,17 @@
 
 import { formatTime } from '@/lib/formatters';
 
-/**
- * SourceCards - Clickable timestamp citation cards.
- * Each card shows an English transcript excerpt and auto-seeks the video player on click.
- */
 export default function SourceCards({ sources, activeSourceIdx, onSourceClick }) {
   if (!sources || sources.length === 0) return null;
 
   return (
     <div className="source-cards-wrapper animate-fade-in" style={{ animationDelay: '0.15s' }}>
       <h3 className="source-section-title">
-        <span className="source-icon-badge">
-          📌
-        </span>
-        Sources &amp; Video Citations ({sources.length})
+        <span className="source-icon-badge">📌</span>
+        Video Citations &amp; Excerpts ({sources.length})
       </h3>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {sources.map((source, idx) => {
           const isActive = idx === activeSourceIdx;
 
@@ -26,18 +20,17 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
             <button
               key={idx}
               onClick={() => onSourceClick(source, idx)}
-              className={`source-card-btn ${isActive ? 'clay-card-pressed is-active' : 'clay-card'}`}
+              className={`source-card-btn stitch-card ${isActive ? 'is-active' : ''}`}
             >
               {/* Timestamp Play Button Badge */}
               <div className="source-badge-col">
                 <div className={`source-play-box ${isActive ? 'play-box-active' : 'play-box-idle'}`}>
-                  <span style={{ fontSize: '16px', transform: 'translateX(1px)' }}>▶</span>
+                  <span style={{ fontSize: '15px', transform: 'translateX(1px)' }}>▶</span>
                   <span className="timestamp-text">
                     {source.formatted_time || formatTime(source.timestamp)}
                   </span>
                 </div>
 
-                {/* Similarity score */}
                 {source.similarity != null && (
                   <span className="similarity-badge">
                     {Math.round(source.similarity * 100)}% match
@@ -58,12 +51,10 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
                   )}
                 </div>
 
-                {/* English Translated / Summarized Excerpt */}
                 <p className="source-excerpt">
                   &ldquo;{source.chunk_preview}&rdquo;
                 </p>
 
-                {/* Jump to play action */}
                 <span className="jump-action-text">
                   ▶ Jump to {source.formatted_time || formatTime(source.timestamp)} and play
                 </span>
@@ -78,18 +69,18 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
           font-size: 0.95rem;
           font-weight: 800;
           color: var(--text-primary);
-          margin-bottom: 14px;
+          margin-bottom: 12px;
           display: flex;
           align-items: center;
           gap: 8px;
         }
 
         .source-icon-badge {
-          width: 30px;
-          height: 30px;
-          border-radius: 10px;
+          width: 28px;
+          height: 28px;
+          border-radius: 8px;
           background: var(--accent-success-surface);
-          box-shadow: 3px 3px 6px rgba(100,170,130,0.2), -2px -2px 4px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5);
+          border: 1px solid var(--accent-success-border);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -98,53 +89,60 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
 
         .source-card-btn {
           display: flex;
-          gap: 16px;
-          padding: 16px 18px;
-          border: 2px solid transparent;
+          gap: 14px;
+          padding: 14px 16px;
           border-radius: var(--radius-lg);
           cursor: pointer;
           text-align: left;
-          font-family: 'Nunito', sans-serif;
           width: 100%;
           background: var(--bg-card);
+          border: 1px solid var(--border-subtle);
           position: relative;
           overflow: hidden;
-          transition: all 0.25s ease;
+          transition: all 0.2s ease;
+        }
+
+        .source-card-btn:hover {
+          background: var(--bg-hover);
+          border-color: var(--border-muted);
+          transform: translateY(-1px);
         }
 
         .source-card-btn.is-active {
-          border-color: var(--accent-primary);
-          background: var(--accent-primary-surface);
+          border-color: var(--accent-primary) !important;
+          background: var(--accent-primary-surface) !important;
+          box-shadow: var(--shadow-glow);
         }
 
         .source-badge-col {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 5px;
+          gap: 4px;
           flex-shrink: 0;
         }
 
         .source-play-box {
-          width: 58px;
-          height: 58px;
+          width: 54px;
+          height: 54px;
           border-radius: var(--radius-md);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          color: #fff;
-          transition: all 0.25s ease;
+          transition: all 0.2s ease;
         }
 
         .play-box-active {
           background: var(--accent-primary);
+          color: #ffffff;
           box-shadow: var(--clay-shadow-accent);
         }
 
         .play-box-idle {
-          background: var(--accent-warning);
-          box-shadow: 3px 3px 6px rgba(200,170,120,0.3), -2px -2px 4px rgba(255,255,255,0.6), inset 1px 1px 2px rgba(255,255,255,0.5);
+          background: var(--bg-input);
+          color: var(--accent-primary);
+          border: 1px solid var(--border-subtle);
         }
 
         .timestamp-text {
@@ -154,10 +152,9 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
         }
 
         .similarity-badge {
-          font-size: 0.64rem;
+          font-size: 0.62rem;
           font-weight: 700;
           color: var(--text-muted);
-          opacity: 0.85;
         }
 
         .source-title-row {
@@ -176,18 +173,19 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
         }
 
         .now-playing-pill {
-          font-size: 0.7rem;
+          font-size: 0.65rem;
           font-weight: 800;
           color: var(--accent-primary);
-          background: rgba(138, 120, 245, 0.15);
+          background: var(--accent-primary-surface);
+          border: 1px solid var(--accent-primary-border);
           padding: 2px 7px;
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius-full);
           flex-shrink: 0;
         }
 
         .source-excerpt {
           font-size: 0.8rem;
-          font-weight: 600;
+          font-weight: 500;
           color: var(--text-secondary);
           line-height: 1.45;
           margin-bottom: 6px;
@@ -197,7 +195,7 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          font-size: 0.76rem;
+          font-size: 0.74rem;
           font-weight: 800;
           color: var(--accent-primary);
         }
@@ -205,18 +203,12 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
         @media (max-width: 640px) {
           .source-card-btn {
             gap: 10px;
-            padding: 12px 14px;
-            border-radius: var(--radius-md);
+            padding: 12px;
           }
 
           .source-play-box {
-            width: 48px;
-            height: 48px;
-            border-radius: var(--radius-sm);
-          }
-
-          .timestamp-text {
-            font-size: 0.62rem;
+            width: 46px;
+            height: 46px;
           }
 
           .source-video-title {
@@ -225,10 +217,6 @@ export default function SourceCards({ sources, activeSourceIdx, onSourceClick })
 
           .source-excerpt {
             font-size: 0.76rem;
-          }
-
-          .jump-action-text {
-            font-size: 0.72rem;
           }
         }
       `}</style>

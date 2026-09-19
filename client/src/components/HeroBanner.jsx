@@ -11,7 +11,7 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
         style={{
           display: 'flex',
           justifyContent: 'flex-end',
-          margin: '12px 0 6px',
+          margin: '10px 0 6px',
         }}
       >
         <button
@@ -19,13 +19,12 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
           className="clay-badge"
           style={{
             cursor: 'pointer',
-            border: 'none',
+            border: '1px solid var(--border-subtle)',
             fontSize: '0.78rem',
             padding: '6px 14px',
-            color: 'var(--text-muted)',
+            color: 'var(--text-secondary)',
             fontWeight: 700,
             background: 'var(--bg-card)',
-            boxShadow: 'var(--clay-shadow-sm)',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -38,7 +37,7 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
   }
 
   return (
-    <div className="hero-banner clay-card-flat animate-pop-in">
+    <div className="hero-banner stitch-card animate-pop-in">
       {/* Dismiss Button */}
       <button
         onClick={() => setIsDismissed(true)}
@@ -75,7 +74,7 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
       {/* 3 Step Feature Grid */}
       <div className="hero-steps-grid">
         {/* Step 1 */}
-        <div className="clay-card-flat hero-step-card">
+        <div className="hero-step-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span style={{ fontSize: '18px' }}>🔍</span>
             <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
@@ -88,7 +87,7 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
         </div>
 
         {/* Step 2 */}
-        <div className="clay-card-flat hero-step-card">
+        <div className="hero-step-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span style={{ fontSize: '18px' }}>⚡</span>
             <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
@@ -101,10 +100,10 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
         </div>
 
         {/* Step 3 */}
-        <div className="clay-card-flat hero-step-card hero-step-highlight">
+        <div className="hero-step-card hero-step-highlight">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span style={{ fontSize: '18px' }}>🎬</span>
-            <span style={{ fontWeight: 900, color: 'var(--text-primary)', fontSize: '0.88rem' }}>
+            <span style={{ fontWeight: 900, color: 'var(--accent-primary)', fontSize: '0.88rem' }}>
               3. Auto-Jumps Video!
             </span>
           </div>
@@ -130,9 +129,9 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
                 'TOC(Theory of Computation)'
               )
             }
-            className="clay-button hero-pill-btn"
+            className="hero-pill-btn"
           >
-            📐 &ldquo;What is DFA?&rdquo; <span style={{ opacity: 0.75, fontSize: '0.74rem', marginLeft: '4px' }}>• Gate Smashers</span>
+            📐 &ldquo;What is DFA?&rdquo; <span className="pill-author">• Gate Smashers</span>
           </button>
 
           <button
@@ -144,15 +143,15 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
                 'AI Engineer In 10 Weeks | No Maths No Statistics | Crack AI Interviews'
               )
             }
-            className="clay-button hero-pill-btn"
+            className="hero-pill-btn"
           >
-            🧠 &ldquo;What is RAG?&rdquo; <span style={{ opacity: 0.75, fontSize: '0.74rem', marginLeft: '4px' }}>• Padho with Pratyush</span>
+            🧠 &ldquo;What is RAG?&rdquo; <span className="pill-author">• Padho with Pratyush</span>
           </button>
         </div>
 
         <button
           onClick={onRequestClick}
-          className="clay-badge hero-request-badge"
+          className="hero-request-badge"
         >
           ✨ Request a Playlist &rarr;
         </button>
@@ -160,17 +159,22 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
 
       <style jsx>{`
         .hero-banner {
-          margin-top: 16px;
-          margin-bottom: 20px;
-          padding: 24px 28px;
-          background: linear-gradient(135deg, #ede6df 0%, #f4ede6 50%, #f7f1eb 100%);
+          margin-top: 14px;
+          margin-bottom: 18px;
+          padding: 22px 26px;
+          background: var(--bg-card);
           border-radius: var(--radius-xl);
-          box-shadow: var(--clay-shadow);
           position: relative;
-          border: 1.5px solid rgba(255, 255, 255, 0.6);
+          border: 1px solid var(--border-subtle);
           overflow: hidden;
           max-width: 100%;
           box-sizing: border-box;
+          transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+
+        :global([data-theme="dark"]) .hero-banner {
+          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+          border-color: var(--border-subtle);
         }
 
         .hero-dismiss-btn {
@@ -184,6 +188,11 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
           color: var(--text-muted);
           padding: 4px;
           line-height: 1;
+          transition: color 0.18s ease;
+        }
+
+        .hero-dismiss-btn:hover {
+          color: var(--text-primary);
         }
 
         .hero-tagline-row {
@@ -195,15 +204,14 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
         }
 
         .hero-tagline-badge {
-          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-          color: #fff;
+          background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+          color: #ffffff;
           font-size: 0.72rem;
-          font-weight: 900;
+          font-weight: 800;
           padding: 3px 10px;
-          border-radius: 999px;
-          letter-spacing: 0.5px;
+          border-radius: var(--radius-full);
+          letter-spacing: 0.04em;
           text-transform: uppercase;
-          box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
         }
 
         .hero-tagline-text {
@@ -213,46 +221,46 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
         }
 
         .hero-headline {
-          font-size: 1.5rem;
-          font-weight: 900;
+          font-size: 1.45rem;
+          font-weight: 800;
           color: var(--text-primary);
-          letter-spacing: -0.5px;
+          letter-spacing: -0.02em;
           line-height: 1.25;
           margin-bottom: 8px;
         }
 
         .hero-headline-gradient {
-          background: linear-gradient(135deg, #6366f1 0%, #d946ef 100%);
+          background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
 
         .hero-desc {
-          font-size: 0.88rem;
+          font-size: 0.86rem;
           color: var(--text-secondary);
           line-height: 1.55;
           max-width: 820px;
-          margin-bottom: 18px;
+          margin-bottom: 16px;
         }
 
         .hero-steps-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 12px;
-          margin-bottom: 18px;
+          margin-bottom: 16px;
         }
 
         .hero-step-card {
-          padding: 14px 16px;
+          padding: 12px 16px;
           background: var(--bg-input);
           border-radius: var(--radius-md);
-          box-shadow: var(--clay-shadow-sm);
-          border: 1px solid rgba(255, 255, 255, 0.5);
+          border: 1px solid var(--border-subtle);
+          transition: all 0.2s ease;
         }
 
         .hero-step-highlight {
           background: var(--accent-primary-surface);
-          border: 1.5px solid var(--accent-primary);
+          border: 1px solid var(--accent-primary-border);
         }
 
         .hero-demo-row {
@@ -260,12 +268,12 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
-          padding-top: 10px;
-          border-top: 1px solid rgba(166, 152, 138, 0.2);
+          padding-top: 12px;
+          border-top: 1px solid var(--border-subtle);
         }
 
         .hero-demo-label {
-          font-size: 0.82rem;
+          font-size: 0.8rem;
           font-weight: 800;
           color: var(--text-primary);
           white-space: nowrap;
@@ -281,27 +289,49 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
         .hero-pill-btn {
           font-size: 0.78rem;
           padding: 7px 14px;
-          font-weight: 800;
+          font-weight: 700;
           color: var(--text-primary);
-          background: #ffffff;
-          box-shadow: var(--clay-shadow-sm);
+          background: var(--bg-input);
+          border: 1px solid var(--border-subtle);
+          border-radius: var(--radius-full);
           white-space: nowrap;
           cursor: pointer;
+          transition: all 0.18s ease;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .hero-pill-btn:hover {
+          background: var(--accent-primary-surface);
+          border-color: var(--accent-primary-border);
+          color: var(--accent-primary);
+          transform: translateY(-1px);
+        }
+
+        .pill-author {
+          opacity: 0.75;
+          font-size: 0.72rem;
+          margin-left: 4px;
         }
 
         .hero-request-badge {
           margin-left: auto;
           cursor: pointer;
-          border: none;
-          font-size: 0.82rem;
-          padding: 8px 16px;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          font-size: 0.8rem;
+          padding: 7px 14px;
           color: #ffffff;
-          font-weight: 900;
-          background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+          font-weight: 800;
+          background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
           border-radius: var(--radius-full);
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
           white-space: nowrap;
-          transition: all 0.2s ease;
+          transition: all 0.18s ease;
+        }
+
+        .hero-request-badge:hover {
+          filter: brightness(1.08);
+          transform: translateY(-1px);
         }
 
         @media (max-width: 768px) {
@@ -311,16 +341,16 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
           }
 
           .hero-headline {
-            font-size: 1.2rem;
+            font-size: 1.15rem;
           }
 
           .hero-desc {
-            font-size: 0.82rem;
+            font-size: 0.8rem;
           }
 
           .hero-steps-grid {
             grid-template-columns: 1fr;
-            gap: 10px;
+            gap: 8px;
           }
 
           .hero-demo-row {
@@ -339,8 +369,8 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
           .hero-pill-btn {
             width: 100%;
             text-align: left;
-            padding: 9px 14px;
-            font-size: 0.82rem;
+            padding: 9px 12px;
+            font-size: 0.8rem;
             white-space: normal;
           }
 
@@ -349,8 +379,8 @@ export default function HeroBanner({ onTryDemo, onRequestClick }) {
             width: 100%;
             text-align: center;
             justify-content: center;
-            padding: 10px 16px;
-            font-size: 0.85rem;
+            padding: 9px 14px;
+            font-size: 0.82rem;
             display: flex;
           }
         }

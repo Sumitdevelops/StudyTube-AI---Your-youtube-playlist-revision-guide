@@ -449,26 +449,20 @@ export default function Home() {
         />
       </div>
 
-      {/* Mobile 3-Tab Segmented Switcher */}
+      {/* Mobile 2-Tab Segmented Switcher */}
       <div className="mobile-segmented-wrapper hide-desktop">
         <div className="segmented-control">
           <button
             onClick={() => setMobileTab('doubts')}
             className={`segmented-pill ${mobileTab === 'doubts' ? 'active' : ''}`}
           >
-            <span>🤖 AI Doubts</span>
+            <span>🤖 AI Doubt Solver</span>
           </button>
           <button
             onClick={() => setMobileTab('lectures')}
             className={`segmented-pill ${mobileTab === 'lectures' ? 'active' : ''}`}
           >
             <span>📚 Lectures ({videos.length})</span>
-          </button>
-          <button
-            onClick={() => setMobileTab('notes')}
-            className={`segmented-pill ${mobileTab === 'notes' ? 'active' : ''}`}
-          >
-            <span>📝 Formulas</span>
           </button>
         </div>
       </div>
@@ -548,47 +542,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Formulas & Exam Notes Tab (Mobile Tab 3) */}
-          {mobileTab === 'notes' && (
-            <div className="stitch-card notes-container animate-fade-in hide-desktop">
-              <div className="notes-header">
-                <span style={{ fontSize: '20px' }}>📝</span>
-                <div>
-                  <h3 style={{ fontSize: '0.95rem', fontWeight: 800 }}>
-                    High-Yield Exam Formulas & Notes
-                  </h3>
-                  <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                    Core theoretical bounds and GATE / syllabus summaries
-                  </p>
-                </div>
-              </div>
-
-              <div className="formula-card">
-                <span className="formula-tag">THEORETICAL BOUND [CRUCIAL]</span>
-                <p style={{ fontFamily: 'monospace', fontWeight: 700, margin: '6px 0', fontSize: '0.92rem' }}>
-                  |Q_DFA| ≤ 2^|Q_NFA| &nbsp;|&nbsp; Practical: |Q_reachable| ≪ 2^|Q_NFA|
-                </p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  Tip: In 95% of exam problems, unreachable subset states are omitted prior to minimization.
-                </p>
-              </div>
-
-              <div className="formula-card" style={{ borderLeftColor: 'var(--accent-secondary)' }}>
-                <span className="formula-tag" style={{ color: 'var(--accent-secondary)' }}>CLOSURE PROPERTIES</span>
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  Regular languages are closed under: <b>Union, Intersection, Concatenation, Kleene Star, Complement</b>.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setMobileTab('doubts')}
-                className="clay-button-primary"
-                style={{ width: '100%', marginTop: '8px', fontSize: '0.85rem' }}
-              >
-                Ask a Doubt About This →
-              </button>
-            </div>
-          )}
         </main>
       </div>
 
@@ -711,29 +664,6 @@ export default function Home() {
           display: flex;
           flex-direction: column;
           gap: 16px;
-        }
-
-        .notes-container {
-          padding: 18px;
-          border-radius: var(--radius-lg);
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .notes-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          border-bottom: 1px solid var(--border-subtle);
-          padding-bottom: 10px;
-        }
-
-        .formula-tag {
-          font-size: 0.65rem;
-          font-weight: 800;
-          color: var(--accent-primary);
-          letter-spacing: 0.05em;
         }
 
         .site-footer {

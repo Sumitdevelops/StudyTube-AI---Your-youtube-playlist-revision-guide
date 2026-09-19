@@ -26,6 +26,14 @@ export default function Home() {
   const [isIngesting, setIsIngesting] = useState(false);
   const [ingestStatus, setIngestStatus] = useState('');
 
+  // Performance & Progressive Loading State
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [isLoadingMoreVideos, setIsLoadingMoreVideos] = useState(false);
+  const [videoStats, setVideoStats] = useState({ loaded: 0, total: 0 });
+  const [totalPlaylistsCount, setTotalPlaylistsCount] = useState(0);
+  const [recentPlaylists, setRecentPlaylists] = useState([]);
+  const [isColdStarting, setIsColdStarting] = useState(false);
+
   // Player state
   const [selectedVideoId, setSelectedVideoId] = useState(null);
   const [playTime, setPlayTime] = useState(0);
@@ -61,17 +69,53 @@ export default function Home() {
     }
   };
 
-  // Check API health on mount
+  // Check API health and restore cached session on mount
   useEffect(() => {
-    checkHealth();
-    loadPlaylists();
-
+    // 1. Instant Session Restore (0ms First Paint)
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('admin') === 'true' || localStorage.getItem('studytube_admin') === 'true') {
-        setIsAdmin(true);
+      try {
+        const cachedSession = localStorage.getItem('studytube_active_session');
+        if (cachedSession) {
+          const parsed = JSON.parse(cachedSession);
+          if (parsed && parsed.playlist_id) {
+            setActivePlaylistId(parsed.playlist_id);
+            setActivePlaylistTitle(parsed.playlist_title || '');
+            if (parsed.videos && parsed.videos.length > 0) {
+              setVideos(parsed.videos);
+              setSelectedVideoId(parsed.selectedVideoId || parsed.videos[0].video_id);
+              setVideoStats({
+                loaded: parsed.videos.length,
+                total: parsed.total || parsed.videos.length
+              });
+            }
+          }
+        }
+
+        const cachedRecent = localStorage.getItem('studytube_recent_playlists');
+        if (cachedRecent) {
+          setRecentPlaylists(JSON.parse(cachedRecent));
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('admin') === 'true' || localStorage.getItem('studytube_admin') === 'true') {
+          setIsAdmin(true);
+        }
+      } catch (e) {
+        console.warn('Error restoring session from localStorage:', e);
       }
     }
+
+    // 2. Cold-start detector timer (fires if API takes > 2.5s)
+    const coldTimer = setTimeout(() => {
+      setIsColdStarting(true);
+    }, 2500);
+
+    // 3. Network revalidation
+    checkHealth();
+    loadPlaylists().finally(() => {
+      clearTimeout(coldTimer);
+      setIsColdStarting(false);
+    });
   }, []);
 
   const checkHealth = async () => {
@@ -84,42 +128,120 @@ export default function Home() {
     }
   };
 
+  const updateRecentPlaylists = (playlist) => {
+    if (!playlist || !playlist.playlist_id) return;
+    setRecentPlaylists((prev) => {
+      const filtered = prev.filter(p => p.playlist_id !== playlist.playlist_id);
+      const updated = [
+        {
+          playlist_id: playlist.playlist_id,
+          playlist_title: playlist.playlist_title || playlist.title,
+          channel_title: playlist.channel_title || ''
+        },
+        ...filtered
+      ].slice(0, 5);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('studytube_recent_playlists', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
+
   const loadPlaylists = async () => {
     try {
-      const data = await getPlaylists();
-      setPlaylists(data.playlists || []);
+      const data = await getPlaylists({ page: 1, limit: 20 });
+      const fetchedPlaylists = data.playlists || [];
+      setPlaylists(fetchedPlaylists);
+      setTotalPlaylistsCount(data.total || fetchedPlaylists.length);
 
-      // Auto-select first playlist
-      if (data.playlists?.length > 0 && !activePlaylistId) {
-        const first = data.playlists[0];
-        setActivePlaylistId(first.playlist_id);
-        setActivePlaylistTitle(first.playlist_title);
-        loadPlaylistVideos(first.playlist_id);
+      // Auto-select first playlist if none selected yet
+      if (fetchedPlaylists.length > 0) {
+        if (!activePlaylistId) {
+          const first = fetchedPlaylists[0];
+          setActivePlaylistId(first.playlist_id);
+          setActivePlaylistTitle(first.playlist_title);
+          loadPlaylistVideos(first.playlist_id, true);
+        } else {
+          // Revalidate current playlist in background without showing blocking skeleton
+          loadPlaylistVideos(activePlaylistId, false);
+        }
       }
     } catch {
       // API not ready yet
     }
   };
 
-  const loadPlaylistVideos = async (playlistId) => {
+  const loadPlaylistVideos = async (playlistId, showLoadingSpinner = true) => {
+    if (showLoadingSpinner && videos.length === 0) {
+      setIsLoadingVideos(true);
+    }
+
     try {
-      const data = await getPlaylist(playlistId);
-      setVideos(data.videos || []);
-      if (data.videos?.length > 0) {
-        setSelectedVideoId(data.videos[0].video_id);
+      // Step 1: Progressive Batch 1 - Fetch first 5 lectures instantly
+      const firstBatch = await getPlaylist(playlistId, { offset: 0, limit: 5 });
+      const initialVideos = firstBatch.videos || [];
+
+      if (initialVideos.length > 0) {
+        setVideos(initialVideos);
+        if (!selectedVideoId || showLoadingSpinner) {
+          setSelectedVideoId(initialVideos[0].video_id);
+        }
       }
-    } catch {
-      console.error('Failed to load playlist videos');
+
+      setVideoStats({
+        loaded: initialVideos.length,
+        total: firstBatch.total_videos || initialVideos.length
+      });
+
+      setIsLoadingVideos(false);
+
+      // Cache active session
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('studytube_active_session', JSON.stringify({
+          playlist_id: playlistId,
+          playlist_title: firstBatch.title,
+          selectedVideoId: initialVideos[0]?.video_id,
+          total: firstBatch.total_videos,
+          videos: initialVideos.slice(0, 5)
+        }));
+      }
+
+      updateRecentPlaylists({
+        playlist_id: playlistId,
+        playlist_title: firstBatch.title,
+        channel_title: firstBatch.channel_title
+      });
+
+      // Step 2: Progressive Batch 2 - Background fetch of remaining lectures
+      if (firstBatch.has_more && firstBatch.total_videos > initialVideos.length) {
+        setIsLoadingMoreVideos(true);
+        const remainingBatch = await getPlaylist(playlistId, {
+          offset: initialVideos.length,
+          limit: 200
+        });
+        const allVideos = [...initialVideos, ...(remainingBatch.videos || [])];
+        setVideos(allVideos);
+        setVideoStats({
+          loaded: allVideos.length,
+          total: remainingBatch.total_videos || allVideos.length
+        });
+        setIsLoadingMoreVideos(false);
+      }
+    } catch (err) {
+      console.error('Failed to load playlist videos:', err);
+      setIsLoadingVideos(false);
+      setIsLoadingMoreVideos(false);
     }
   };
 
   // Switch playlist handler
   const handleSelectPlaylist = (playlistId) => {
-    const pl = playlists.find(p => p.playlist_id === playlistId);
-    if (!pl) return;
-    setActivePlaylistId(pl.playlist_id);
-    setActivePlaylistTitle(pl.playlist_title);
-    loadPlaylistVideos(pl.playlist_id);
+    const pl = playlists.find(p => p.playlist_id === playlistId) || recentPlaylists.find(p => p.playlist_id === playlistId);
+    setActivePlaylistId(playlistId);
+    if (pl) {
+      setActivePlaylistTitle(pl.playlist_title);
+    }
+    loadPlaylistVideos(playlistId, true);
     setAnswer('');
     setSources([]);
   };
@@ -308,8 +430,37 @@ export default function Home() {
         isConnected={isConnected}
         onRequestPlaylist={() => handleOpenRequestModal('')}
         onOpenAvailablePlaylists={() => setIsAvailableModalOpen(true)}
-        playlistCount={playlists.length}
+        playlistCount={totalPlaylistsCount || playlists.length}
       />
+
+      {/* Cloud Server Cold-Start Reassurance Banner */}
+      {isColdStarting && (
+        <div
+          className="clay-card-flat animate-fade-in"
+          style={{
+            padding: '10px 18px',
+            margin: '12px 0 6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            fontSize: '0.84rem',
+            color: 'var(--accent-primary)',
+            background: 'var(--accent-primary-surface)',
+            borderRadius: 'var(--radius-md)',
+            fontWeight: 700,
+            boxShadow: 'var(--clay-shadow-sm)',
+            border: '1px solid var(--accent-primary)',
+          }}
+        >
+          <span style={{ fontSize: '1.25rem' }}>☕</span>
+          <div style={{ flex: 1 }}>
+            <strong>Waking up cloud server...</strong>{' '}
+            <span style={{ fontWeight: 500, opacity: 0.9 }}>
+              Free-tier instances take a few seconds to spin up after inactivity. Your courses will appear in a moment!
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Hero / Value Proposition Banner */}
       <HeroBanner
@@ -396,6 +547,11 @@ export default function Home() {
             playlists={playlists}
             activePlaylistId={activePlaylistId}
             onSelectPlaylist={handleSelectPlaylist}
+            isLoadingVideos={isLoadingVideos}
+            isLoadingMoreVideos={isLoadingMoreVideos}
+            videoStats={videoStats}
+            recentPlaylists={recentPlaylists}
+            onOpenBrowsePlaylists={() => setIsAvailableModalOpen(true)}
           />
         </aside>
 

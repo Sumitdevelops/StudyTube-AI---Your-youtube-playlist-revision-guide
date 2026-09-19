@@ -23,14 +23,23 @@ export async function getHealth() {
   return apiFetch('/health');
 }
 
-/** GET /api/playlists */
-export async function getPlaylists() {
-  return apiFetch('/playlists');
+/** GET /api/playlists with optional search, page, and limit */
+export async function getPlaylists(params = {}) {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.page) query.set('page', params.page);
+  if (params.limit) query.set('limit', params.limit);
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return apiFetch(`/playlists${qs}`);
 }
 
-/** GET /api/playlist/:id */
-export async function getPlaylist(playlistId) {
-  return apiFetch(`/playlist/${playlistId}`);
+/** GET /api/playlist/:id with optional offset and limit for progressive loading */
+export async function getPlaylist(playlistId, params = {}) {
+  const query = new URLSearchParams();
+  if (params.offset !== undefined) query.set('offset', params.offset);
+  if (params.limit !== undefined) query.set('limit', params.limit);
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return apiFetch(`/playlist/${playlistId}${qs}`);
 }
 
 /**

@@ -25,6 +25,7 @@ if str(current_dir) not in sys.path:
 
 from app.config import settings
 from app.db.vector_store import vector_store
+from app.db.catalog_db import catalog_db
 from app.services.youtube_service import parse_playlist_id, fetch_playlist_videos
 from app.services.transcriber import get_transcript
 from app.services.chunker import chunk_transcript
@@ -63,6 +64,7 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
 
     total_chunks_indexed = 0
     successful_videos = 0
+    processed_videos_list = []
 
     for i, video in enumerate(videos, start=1):
         vid = video["video_id"]
@@ -116,7 +118,29 @@ def index_playlist(url_or_id: str, max_videos: int = 0):
 
         total_chunks_indexed += len(chunks)
         successful_videos += 1
+        processed_videos_list.append({
+            "video_id": vid,
+            "video_index": i - 1,
+            "title": title,
+            "thumbnail_url": video.get("thumbnail_url", ""),
+            "duration": video.get("duration", 0),
+            "has_transcript": True,
+            "chunk_count": len(chunks)
+        })
         logger.info(f"   ✅ Indexed successfully! ({len(chunks)} chunks)")
+
+    # 6. Save metadata into Catalog DB
+    if processed_videos_list:
+        catalog_db.upsert_playlist(
+            playlist_id=playlist["playlist_id"],
+            title=playlist["title"],
+            channel_title=playlist.get("channel_title", ""),
+            thumbnail_url=playlist.get("thumbnail_url", ""),
+            video_count=len(processed_videos_list),
+            chunk_count=total_chunks_indexed
+        )
+        catalog_db.upsert_videos(playlist["playlist_id"], processed_videos_list)
+        logger.info("   💾 Saved playlist & video metadata to Catalog DB.")
 
     print("\n" + "=" * 65)
     print(f"🎉 INDEXING COMPLETE!")

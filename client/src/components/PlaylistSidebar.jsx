@@ -1,14 +1,21 @@
+'use client';
+
 import { useState } from 'react';
 import { formatDuration } from '@/lib/formatters';
 
 export default function PlaylistSidebar({
-  videos,
+  videos = [],
   selectedVideoId,
   onSelectVideo,
   playlistTitle,
   playlists = [],
   activePlaylistId = '',
-  onSelectPlaylist
+  onSelectPlaylist,
+  isLoadingVideos = false,
+  isLoadingMoreVideos = false,
+  videoStats = { loaded: 0, total: 0 },
+  recentPlaylists = [],
+  onOpenBrowsePlaylists,
 }) {
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
 
@@ -23,6 +30,140 @@ export default function PlaylistSidebar({
     }
   };
 
+  const activePlaylist = playlists?.find(p => p.playlist_id === activePlaylistId);
+
+  // 1. Shimmer Skeleton Loading State (When loading and no cached videos exist)
+  if (isLoadingVideos && (!videos || videos.length === 0)) {
+    return (
+      <div className="sidebar-wrapper clay-card-flat animate-fade-in">
+        <div className="skeleton-header">
+          <div className="skeleton-badge-pill" />
+          <div className="skeleton-title-bar" />
+          <div className="skeleton-sub-bar" />
+        </div>
+
+        <div className="loading-status-badge">
+          <span className="spinner-dot" />
+          <span>Loading course lectures...</span>
+        </div>
+
+        <div className="video-list-container">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="skeleton-video-item">
+              <div className="skeleton-thumb" />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="skeleton-line" style={{ width: `${60 + (i * 7) % 35}%` }} />
+                <div className="skeleton-line-sm" style={{ width: '35%' }} />
+              </div>
+              <div className="skeleton-idx">#{i}</div>
+            </div>
+          ))}
+        </div>
+
+        <style jsx>{`
+          .sidebar-wrapper {
+            padding: 20px;
+            max-height: calc(100vh - 220px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+          .skeleton-header {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 8px;
+          }
+          .skeleton-badge-pill {
+            width: 90px;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(0,0,0,0.06);
+            animation: pulse-shimmer 1.5s infinite ease-in-out;
+          }
+          .skeleton-title-bar {
+            width: 75%;
+            height: 22px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.08);
+            animation: pulse-shimmer 1.5s infinite ease-in-out;
+          }
+          .skeleton-sub-bar {
+            width: 40%;
+            height: 14px;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.05);
+            animation: pulse-shimmer 1.5s infinite ease-in-out;
+          }
+          .loading-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--accent-primary-surface);
+            color: var(--accent-primary);
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            width: fit-content;
+          }
+          .spinner-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            animation: pulse-dot 1s infinite alternate;
+          }
+          .skeleton-video-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            background: rgba(0,0,0,0.03);
+          }
+          .skeleton-thumb {
+            width: 64px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.08);
+            animation: pulse-shimmer 1.5s infinite ease-in-out;
+            flex-shrink: 0;
+          }
+          .skeleton-line {
+            height: 14px;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.08);
+            animation: pulse-shimmer 1.5s infinite ease-in-out;
+          }
+          .skeleton-line-sm {
+            height: 10px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.05);
+            animation: pulse-shimmer 1.5s infinite ease-in-out;
+          }
+          .skeleton-idx {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            opacity: 0.4;
+          }
+          @keyframes pulse-shimmer {
+            0% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.4; }
+          }
+          @keyframes pulse-dot {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.3); opacity: 1; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // 2. Empty State (When not loading and genuinely empty)
   if (!videos || videos.length === 0) {
     return (
       <div
@@ -43,41 +184,69 @@ export default function PlaylistSidebar({
           No playlist loaded
         </p>
         <p style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-          Index a YouTube playlist to get started
+          Index or select a YouTube course to start studying
         </p>
+        {onOpenBrowsePlaylists && (
+          <button
+            onClick={onOpenBrowsePlaylists}
+            className="clay-button"
+            style={{ fontSize: '0.82rem', padding: '8px 16px', marginTop: '4px' }}
+          >
+            🔍 Browse Courses
+          </button>
+        )}
       </div>
     );
   }
 
-  const activePlaylist = playlists?.find(p => p.playlist_id === activePlaylistId);
+  // Calculate loaded vs total stats for progressive bar
+  const totalVideosCount = videoStats?.total || activePlaylist?.video_count || videos.length;
+  const loadedVideosCount = videos.length;
+  const progressPercent = Math.min(100, Math.round((loadedVideosCount / (totalVideosCount || 1)) * 100));
 
   return (
     <div className="sidebar-wrapper clay-card-flat">
-      {/* Playlist Selector Dropdown (when multiple playlists exist) */}
-      {playlists && playlists.length > 1 && onSelectPlaylist && (
-        <div className="playlist-selector-group">
-          <label className="playlist-selector-label">
-            📚 Switch Playlist ({playlists.length})
-          </label>
-          <select
-            value={activePlaylistId || ''}
-            onChange={(e) => onSelectPlaylist(e.target.value)}
-            className="playlist-selector-dropdown"
+      {/* Course Switcher & Quick Navigation */}
+      <div className="course-nav-bar">
+        <div className="course-nav-left">
+          <span className="course-nav-label">📚 Course</span>
+        </div>
+        {onOpenBrowsePlaylists && (
+          <button
+            onClick={onOpenBrowsePlaylists}
+            className="browse-courses-trigger"
+            title="Search all available courses"
           >
-            {playlists.map((pl) => (
-              <option key={pl.playlist_id} value={pl.playlist_id}>
-                {pl.playlist_title} {pl.channel_title ? `• ${pl.channel_title}` : ''}
-              </option>
-            ))}
-          </select>
+            <span>🔍 Switch</span>
+          </button>
+        )}
+      </div>
+
+      {/* Recent Courses Chips (1-click instant switch) */}
+      {recentPlaylists && recentPlaylists.length > 1 && (
+        <div className="recent-chips-container">
+          {recentPlaylists.slice(0, 4).map((rp) => {
+            const isCurrent = rp.playlist_id === activePlaylistId;
+            const cleanTitle = (rp.playlist_title || '').split('|')[0].split('-')[0].trim();
+            return (
+              <button
+                key={rp.playlist_id}
+                onClick={() => onSelectPlaylist && onSelectPlaylist(rp.playlist_id)}
+                className={`recent-chip ${isCurrent ? 'recent-chip-active' : ''}`}
+                title={rp.playlist_title}
+              >
+                {cleanTitle}
+              </button>
+            );
+          })}
         </div>
       )}
 
       {/* Playlist Title & Mobile Accordion Toggle */}
       <div className="sidebar-header">
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 className="sidebar-title">
-            🎬 {playlistTitle || 'Playlist'}
+          <h2 className="sidebar-title" title={playlistTitle || 'Course Playlist'}>
+            🎬 {playlistTitle || 'Course Playlist'}
           </h2>
           {activePlaylist?.channel_title && (
             <div className="sidebar-channel-badge">
@@ -85,7 +254,7 @@ export default function PlaylistSidebar({
             </div>
           )}
           <p className="sidebar-subtitle">
-            {videos.length} lecture{videos.length !== 1 ? 's' : ''} indexed
+            {loadedVideosCount} {totalVideosCount > loadedVideosCount ? `of ${totalVideosCount}` : ''} lecture{loadedVideosCount !== 1 ? 's' : ''} ready
           </p>
         </div>
 
@@ -94,9 +263,25 @@ export default function PlaylistSidebar({
           className="clay-button sidebar-mobile-toggle"
           aria-expanded={isMobileExpanded}
         >
-          {isMobileExpanded ? '▲ Hide' : `▼ Lectures (${videos.length})`}
+          {isMobileExpanded ? '▲ Hide' : `▼ Lectures (${loadedVideosCount})`}
         </button>
       </div>
+
+      {/* Progressive Loading Status Bar (when more lectures are streaming in the background) */}
+      {isLoadingMoreVideos && (
+        <div className="progressive-loading-container animate-fade-in">
+          <div className="progressive-loading-text">
+            <span>⚡ Loading remaining lectures ({loadedVideosCount}/{totalVideosCount})...</span>
+            <span className="progressive-percent">{progressPercent}%</span>
+          </div>
+          <div className="progressive-track">
+            <div
+              className="progressive-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Video List */}
       <div className={`video-list-container ${isMobileExpanded ? 'mobile-show' : 'mobile-hide'}`}>
@@ -110,10 +295,12 @@ export default function PlaylistSidebar({
             >
               {/* Thumbnail */}
               <div className="video-thumb-box">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={video.thumbnail_url || `https://i.ytimg.com/vi/${video.video_id}/default.jpg`}
                   alt=""
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  loading="lazy"
                 />
               </div>
 
@@ -145,54 +332,93 @@ export default function PlaylistSidebar({
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 10px;
         }
 
-        .playlist-selector-group {
-          margin-bottom: 10px;
-          padding: 0 2px;
+        .course-nav-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 2px 4px;
         }
 
-        .playlist-selector-label {
-          font-size: 0.72rem;
-          fontWeight: 800;
+        .course-nav-label {
+          font-size: 0.74rem;
+          font-weight: 800;
           color: var(--text-muted);
           text-transform: uppercase;
           letter-spacing: 0.06em;
-          display: block;
-          margin-bottom: 6px;
         }
 
-        .playlist-selector-dropdown {
-          width: 100%;
-          padding: 9px 12px;
-          font-size: 0.84rem;
-          font-weight: 700;
-          border-radius: 12px;
+        .browse-courses-trigger {
+          background: rgba(99, 102, 241, 0.08);
+          border: 1px solid rgba(99, 102, 241, 0.2);
+          color: var(--accent-primary);
+          padding: 3px 10px;
+          border-radius: var(--radius-sm);
+          font-size: 0.75rem;
+          font-weight: 800;
           cursor: pointer;
-          outline: none;
+          transition: all 0.2s;
+        }
+
+        .browse-courses-trigger:hover {
+          background: var(--accent-primary);
+          color: #fff;
+        }
+
+        .recent-chips-container {
+          display: flex;
+          gap: 6px;
+          overflow-x: auto;
+          padding-bottom: 4px;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .recent-chip {
+          padding: 4px 9px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          border-radius: 999px;
           background: var(--bg-card);
-          color: var(--text-primary);
-          border: 1px solid rgba(0,0,0,0.1);
-          box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+          color: var(--text-secondary);
+          border: 1px solid rgba(0,0,0,0.08);
+          white-space: nowrap;
+          cursor: pointer;
+          transition: all 0.2s;
+          max-width: 140px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .recent-chip:hover {
+          border-color: var(--accent-primary);
+          color: var(--accent-primary);
+        }
+
+        .recent-chip-active {
+          background: var(--accent-primary);
+          color: #ffffff;
+          border-color: var(--accent-primary);
         }
 
         .sidebar-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 8px;
+          margin-bottom: 4px;
           padding: 0 4px;
           gap: 8px;
         }
 
         .sidebar-title {
-          font-size: 1rem;
+          font-size: 0.98rem;
           font-weight: 800;
           color: var(--text-primary);
           display: flex;
           align-items: center;
           gap: 8px;
+          line-height: 1.3;
         }
 
         .sidebar-channel-badge {
@@ -210,10 +436,10 @@ export default function PlaylistSidebar({
         }
 
         .sidebar-subtitle {
-          font-size: 0.78rem;
+          font-size: 0.76rem;
           font-weight: 600;
           color: var(--text-muted);
-          margin-top: 4px;
+          margin-top: 3px;
         }
 
         .sidebar-mobile-toggle {
@@ -226,6 +452,44 @@ export default function PlaylistSidebar({
           border: 1px solid var(--accent-primary);
           white-space: nowrap;
           cursor: pointer;
+        }
+
+        .progressive-loading-container {
+          padding: 8px 10px;
+          background: rgba(99, 102, 241, 0.06);
+          border: 1px solid rgba(99, 102, 241, 0.15);
+          border-radius: var(--radius-sm);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .progressive-loading-text {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.74rem;
+          font-weight: 800;
+          color: var(--accent-primary);
+        }
+
+        .progressive-percent {
+          opacity: 0.85;
+        }
+
+        .progressive-track {
+          width: 100%;
+          height: 5px;
+          background: rgba(0,0,0,0.06);
+          border-radius: 999px;
+          overflow: hidden;
+        }
+
+        .progressive-fill {
+          height: 100%;
+          background: linear-gradient(90deg, var(--accent-primary) 0%, #a855f7 100%);
+          border-radius: 999px;
+          transition: width 0.3s ease;
         }
 
         .video-list-container {

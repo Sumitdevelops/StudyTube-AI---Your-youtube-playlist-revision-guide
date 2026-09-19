@@ -26,6 +26,7 @@ class Settings:
     QDRANT_URL: str = os.getenv("QDRANT_URL", "")
     QDRANT_API_KEY: str = os.getenv("QDRANT_API_KEY", "")
     COLLECTION_NAME: str = "youtube_chunks"
+    CATALOG_DB_PATH: str = os.getenv("CATALOG_DB_PATH", str(Path(__file__).resolve().parent.parent / "data" / "catalog.db"))
 
     # Embeddings
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"

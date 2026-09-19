@@ -1,26 +1,90 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { getPlaylists } from '@/lib/api';
 
 export default function AvailablePlaylistsModal({
   isOpen,
   onClose,
-  playlists = [],
+  playlists: initialPlaylists = [],
   activePlaylistId,
   onSelectPlaylist,
   onRequestPlaylist,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [courseList, setCourseList] = useState(initialPlaylists || []);
+  const [totalCount, setTotalCount] = useState(initialPlaylists?.length || 0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Filter playlists based on search query (matches course title OR channel name)
-  const filteredPlaylists = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return playlists;
-    return playlists.filter((p) =>
-      (p.playlist_title || '').toLowerCase().includes(q) ||
-      (p.channel_title || '').toLowerCase().includes(q)
-    );
-  }, [playlists, searchQuery]);
+  const debounceTimerRef = useRef(null);
+
+  // Fetch playlists with optional search & pagination
+  const fetchCourses = useCallback(async (query = '', pageNum = 1, append = false) => {
+    if (pageNum === 1) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
+    try {
+      const data = await getPlaylists({
+        search: query.trim(),
+        page: pageNum,
+        limit: 20
+      });
+
+      const newItems = data.playlists || [];
+      if (append) {
+        setCourseList(prev => [...prev, ...newItems]);
+      } else {
+        setCourseList(newItems);
+      }
+      setTotalCount(data.total !== undefined ? data.total : newItems.length);
+      setHasMore(Boolean(data.has_more));
+      setPage(pageNum);
+    } catch (err) {
+      console.error('Failed to fetch playlists:', err);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, []);
+
+  // Fetch initial list when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSearchQuery('');
+      fetchCourses('', 1, false);
+    }
+  }, [isOpen, fetchCourses]);
+
+  // Handle debounced search input
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      fetchCourses(val, 1, false);
+    }, 250);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    fetchCourses('', 1, false);
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore && !isLoadingMore) {
+      fetchCourses(searchQuery, page + 1, true);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -63,7 +127,7 @@ export default function AvailablePlaylistsModal({
               Available Courses &amp; Playlists
             </h2>
             <p className="modal-subtitle">
-              Explore indexed courses, search by topic or channel, or request a new course!
+              Instant indexed search across {totalCount > 0 ? `${totalCount.toLocaleString()} courses` : 'all playlists'}.
             </p>
           </div>
         </div>
@@ -75,7 +139,7 @@ export default function AvailablePlaylistsModal({
             type="text"
             placeholder="Search courses or channel (e.g. TOC, Gate Smashers, AI)..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             style={{
               paddingLeft: '44px',
               paddingRight: searchQuery ? '40px' : '16px',
@@ -97,7 +161,7 @@ export default function AvailablePlaylistsModal({
           </span>
           {searchQuery && (
             <button
-              onClick={() => setSearchQuery('')}
+              onClick={handleClearSearch}
               style={{
                 position: 'absolute',
                 right: '14px',
@@ -119,7 +183,11 @@ export default function AvailablePlaylistsModal({
         {/* Results Counter / Status */}
         <div className="modal-meta-row">
           <span>
-            {filteredPlaylists.length} {filteredPlaylists.length === 1 ? 'course' : 'courses'} available
+            {isLoading ? (
+              'Searching courses...'
+            ) : (
+              `${totalCount.toLocaleString()} ${totalCount === 1 ? 'course' : 'courses'} found`
+            )}
           </span>
           <button
             onClick={() => handleRequestCourse(searchQuery)}
@@ -131,93 +199,123 @@ export default function AvailablePlaylistsModal({
 
         {/* Playlists Cards Grid (Scrollable) */}
         <div className="course-cards-list">
-          {filteredPlaylists.length > 0 ? (
-            filteredPlaylists.map((playlist) => {
-              const isActive = playlist.playlist_id === activePlaylistId;
-              const shortTitle = (playlist.playlist_title || '')
-                .split('|')[0]
-                .split('-')[0]
-                .trim();
-
-              return (
-                <div
-                  key={playlist.playlist_id}
-                  className={`course-card clay-card-flat animate-fade-in ${isActive ? 'is-active-course' : ''}`}
-                >
-                  {/* Top / Main info row */}
-                  <div className="course-main-content">
-                    {/* Playlist Thumbnail */}
-                    <div className="course-thumb-box">
-                      {playlist.thumbnail_url ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={playlist.thumbnail_url}
-                          alt={playlist.playlist_title}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div className="course-thumb-fallback">
-                          🎓
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Course Details */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
-                        <h3 className="course-title">
-                          {shortTitle}
-                        </h3>
-                        {isActive && (
-                          <span className="active-course-pill">
-                            ACTIVE
-                          </span>
-                        )}
-                      </div>
-
-                      {/* YouTube Channel Name */}
-                      {playlist.channel_title && (
-                        <div style={{ marginBottom: '4px' }}>
-                          <span className="course-channel-badge">
-                            📺 {playlist.channel_title}
-                          </span>
-                        </div>
-                      )}
-
-                      <p
-                        className="course-full-title"
-                        title={playlist.playlist_title}
-                      >
-                        {playlist.playlist_title}
-                      </p>
-
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {playlist.video_count > 0 && (
-                          <span className="course-stat-badge">
-                            🎬 {playlist.video_count} Lectures
-                          </span>
-                        )}
-                        {playlist.chunk_count > 0 && (
-                          <span className="course-stat-badge">
-                            ⚡ {playlist.chunk_count} Chunks
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Select / Action Button */}
-                  <div className="course-action-col">
-                    <button
-                      onClick={() => handleSelect(playlist.playlist_id)}
-                      className="clay-button course-select-btn"
-                    >
-                      {isActive ? '✓ Selected' : '🚀 Start Revising'}
-                    </button>
+          {isLoading ? (
+            /* Skeleton Loading in Modal */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="course-card clay-card-flat" style={{ opacity: 0.6 }}>
+                  <div className="course-thumb-box" style={{ animation: 'pulse 1.5s infinite' }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ height: '16px', width: '60%', background: 'rgba(0,0,0,0.08)', borderRadius: '6px' }} />
+                    <div style={{ height: '12px', width: '35%', background: 'rgba(0,0,0,0.05)', borderRadius: '4px' }} />
                   </div>
                 </div>
-              );
-            })
+              ))}
+            </div>
+          ) : courseList.length > 0 ? (
+            <>
+              {courseList.map((playlist) => {
+                const isActive = playlist.playlist_id === activePlaylistId;
+                const shortTitle = (playlist.playlist_title || '')
+                  .split('|')[0]
+                  .split('-')[0]
+                  .trim();
+
+                return (
+                  <div
+                    key={playlist.playlist_id}
+                    className={`course-card clay-card-flat animate-fade-in ${isActive ? 'is-active-course' : ''}`}
+                  >
+                    {/* Top / Main info row */}
+                    <div className="course-main-content">
+                      {/* Playlist Thumbnail */}
+                      <div className="course-thumb-box">
+                        {playlist.thumbnail_url ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={playlist.thumbnail_url}
+                            alt={playlist.playlist_title}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="course-thumb-fallback">
+                            🎓
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Course Details */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                          <h3 className="course-title">
+                            {shortTitle}
+                          </h3>
+                          {isActive && (
+                            <span className="active-course-pill">
+                              ACTIVE
+                            </span>
+                          )}
+                        </div>
+
+                        {/* YouTube Channel Name */}
+                        {playlist.channel_title && (
+                          <div style={{ marginBottom: '4px' }}>
+                            <span className="course-channel-badge">
+                              📺 {playlist.channel_title}
+                            </span>
+                          </div>
+                        )}
+
+                        <p
+                          className="course-full-title"
+                          title={playlist.playlist_title}
+                        >
+                          {playlist.playlist_title}
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {playlist.video_count > 0 && (
+                            <span className="course-stat-badge">
+                              🎬 {playlist.video_count} Lectures
+                            </span>
+                          )}
+                          {playlist.chunk_count > 0 && (
+                            <span className="course-stat-badge">
+                              ⚡ {playlist.chunk_count} Chunks
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Select / Action Button */}
+                    <div className="course-action-col">
+                      <button
+                        onClick={() => handleSelect(playlist.playlist_id)}
+                        className="clay-button course-select-btn"
+                      >
+                        {isActive ? '✓ Selected' : '🚀 Start Revising'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Load More Button if hasMore */}
+              {hasMore && (
+                <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={isLoadingMore}
+                    className="clay-button"
+                    style={{ fontSize: '0.84rem', padding: '9px 20px' }}
+                  >
+                    {isLoadingMore ? 'Loading more courses...' : '⬇ Load More Courses'}
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             /* Empty State when searched course is not found */
             <div className="empty-state-card clay-card-flat animate-pop-in">
@@ -260,7 +358,7 @@ export default function AvailablePlaylistsModal({
 
         .modal-dialog {
           width: 100%;
-          maxWidth: 740px;
+          max-width: 740px;
           max-height: 90vh;
           display: flex;
           flex-direction: column;
